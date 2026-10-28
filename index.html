@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<title>Music Buddy | Band Room Survival Kit</title>
+<meta name="description" content="Band room survival kit: instrument setup guides, transposition help, flashcards, a pop quiz, a metronome and tuning tones.">
+<meta name="theme-color" content="#F3EAD7">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23E9A83B'/%3E%3Cpath d='M13 8v12.5a3.5 3 0 1 0 2.5 2.9V12l7 2V9z' fill='%232A2118'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,800&family=Karla:wght@400;600;700&family=Caveat:wght@600;700&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="mel-note" viewBox="0 0 64 64"><path d="M26 12v30a9 7 0 1 0 6 6.4V22l16 5v-9z" fill="#E9A83B" stroke="#3a2a18" stroke-width="3" stroke-linejoin="round"/><circle cx="20.5" cy="45.5" r="3.2" fill="#fff" stroke="#3a2a18" stroke-width="1.5"/><circle cx="27.5" cy="45.5" r="3.2" fill="#fff" stroke="#3a2a18" stroke-width="1.5"/><circle cx="21.2" cy="46.2" r="1.5" fill="#3a2a18"/><circle cx="28.2" cy="46.2" r="1.5" fill="#3a2a18"/><path d="M21 51q3.5 3 7 0" stroke="#3a2a18" stroke-width="2" fill="none" stroke-linecap="round"/></symbol></svg>
+<a class="skip" href="#guides">Skip to content</a>
+<header class="mast"><div><a class="brand" href="#hero"><svg width="28" height="28" aria-hidden="true"><use href="#mel-note"/></svg>Music Buddy</a><nav aria-label="Primary"><a href="#guides">guides</a><a href="#scales">scales</a><a href="#theory">flashcards+quiz</a><a href="#tools">tools</a></nav></div></header>
+<main>
+<section id="hero">
+  <div class="stand">
+    <span class="tape l"></span><span class="tape r"></span>
+    <p class="kick">band room survival kit, vol. 1</p>
+    <h1>Music theory, but <mark>make it make sense</mark>.</h1>
+    <p class="lead">Hey. If someone just handed you a clarinet case and a rehearsal schedule, you are in the right place. Assembly, posture, transposition, a pop quiz, and a metronome that will not judge you (much).</p>
+    <div class="row"><a class="btn" href="#guides">Open your case</a><a class="btn alt" href="#scales">Fix my key signature</a></div>
+  </div>
+  <div class="desk">
+    <div class="mel-intro">
+      <svg class="mel-big" aria-hidden="true"><use href="#mel-note"/></svg>
+      <div class="bubble"><b>Hi, I’m Mel.</b> I live on this stand next to the spare reeds. Stuck on a key signature? Poke me.<br><button class="btn alt" id="poke">Poke Mel</button></div>
+    </div>
+    <p class="sticky s1">rule #1: cold horns go flat. warm up first!</p>
+    <p class="sticky s2">pencil. always pencil. (your director will thank you)</p>
+  </div>
+</section>
+
+<section id="guides">
+  <h2>Instrument guides</h2>
+  <p class="aside">Pick your weapon. Four steps each: build it, sit right, hold it right, make a sound on purpose. Got photos? Drop them in <code>images/</code> as <code>flute-1.jpg</code> through <code>flute-4.jpg</code> and they show up here.</p>
+  <div id="tabs" class="row" role="tablist" aria-label="Instruments"></div>
+  <div id="guide" class="grid" role="tabpanel" tabindex="0"></div>
+  <p id="tip" class="tip"></p>
+</section>
+
+<section id="scales">
+  <h2>Scales &amp; transposition</h2>
+  <p class="aside">Your part says one thing, the band hears another. Pick a concert key and your instrument to see what you actually read. Cheat code: B♭ instruments read up a 2nd, E♭ up a 6th, F horn up a 5th.</p>
+  <div class="box taped" style="margin-top:30px">
+    <div class="row end">
+      <label>Concert key<select id="key"></select></label>
+      <label>Scale type<select id="mode"><option value="0">Major</option><option value="1">Natural minor</option></select></label>
+      <label>Your instrument<select id="inst"></select></label>
+    </div>
+    <p class="mut" style="margin-top:16px">What the band hears (concert)</p><div id="concert" class="notes"></div><p class="mut mono" id="sigc"></p>
+    <p class="mut" style="margin-top:14px">What you read and play</p><div id="written" class="notes"></div><p class="mut mono" id="sigw"></p>
+    <button class="btn" id="play" style="margin-top:16px">Play the concert scale</button>
+  </div>
+  <div class="box" style="margin-top:34px">
+    <h3 class="hand">Trumpet valve cheat sheet</h3>
+    <p class="mut">The one you would tape inside your case lid. Tap a written note (C4 to B4). Baritone and tuba players: same pattern, but your fourth valve changes the low notes.</p>
+    <div id="notebtns" class="notes"></div>
+    <div class="row" style="margin-top:14px"><div id="valves" class="row" aria-hidden="true"></div><span id="vt" role="status">Tap a note</span></div>
+  </div>
+</section>
+
+<section id="theory">
+  <h2>Flashcards</h2>
+  <p class="aside">Same four ideas, four ways to think about them. Flip whichever one your brain likes best.</p>
+  <div id="cards" class="grid"></div>
+  <h3 class="hand sub">Pop quiz (ungraded, promise)</h3>
+  <p class="aside" style="margin-top:8px">Ten fresh questions every round. Your best score lives on this device, so nobody else has to know.</p>
+  <div id="quiz" class="box" style="margin-top:22px"></div>
+</section>
+
+<section id="tools">
+  <h2>Practice tools</h2>
+  <div class="grid">
+    <div class="box taped">
+      <h3 class="hand">The friend who never loses count</h3>
+      <p class="mut">A metronome. Start slow. Slower than that.</p>
+      <label for="bpm" style="margin-top:12px"><output id="bpmv">90</output> BPM</label><input id="bpm" type="range" min="40" max="208" value="90">
+      <label for="bpb" style="margin-top:10px">Beats per bar</label><select id="bpb"><option>2</option><option>3</option><option selected>4</option><option>6</option></select>
+      <div class="row" style="margin-top:14px"><button class="btn" id="met" aria-pressed="false">Start</button><span class="hand" id="beat" aria-hidden="true">–</span></div>
+    </div>
+    <div class="box">
+      <h3 class="hand">Drone zone</h3>
+      <p class="mut">Tap a concert pitch to hold it, tap again to stop. Play along until you and the drone stop arguing.</p>
+      <div id="drone" class="row" style="margin-top:14px"><button class="btn" aria-pressed="false" data-f="466.16">B♭</button><button class="btn" aria-pressed="false" data-f="440">A</button><button class="btn" aria-pressed="false" data-f="349.23">F</button><button class="btn" aria-pressed="false" data-f="311.13">E♭</button></div>
+    </div>
+  </div>
+</section>
+</main>
+<footer class="foot">Made by a music geek with too many tabs open. If something here is wrong, tell your director, then tell me. Keep your valves oiled.</footer>
+
+<button id="mel" class="mel" aria-label="Ask Mel, the music note mascot" aria-expanded="false" aria-controls="drawer"><svg width="66" height="66" aria-hidden="true"><use href="#mel-note"/></svg></button>
+<aside id="drawer" class="drawer" aria-label="Mel chat" hidden>
+  <header><b class="hand big"><svg width="28" height="28" aria-hidden="true"><use href="#mel-note"/></svg>Mel</b><button id="x" aria-label="Close chat">&times;</button></header>
+  <div id="log" role="log" aria-live="polite"></div>
+  <div id="chips"></div>
+  <form id="f"><input id="q" type="text" aria-label="Your question" placeholder="Ask Mel a music question" autocomplete="off"><button class="btn">Send</button></form>
+</aside>
+<script src="app.js"></script>
+</body>
+</html>

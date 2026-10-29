@@ -8,7 +8,7 @@ const rnd=n=>Math.floor(Math.random()*n),pick=a=>a[rnd(a.length)],shuf=a=>[...a]
 const ls=(k,v)=>{try{return v==null?localStorage.getItem(k):localStorage.setItem(k,v)}catch(e){}};
 
 /* ---------- Guides ---------- */
-const T=['Put it together','Sit (or stand) right','Where your hands go','Air & sound'];
+const T=['Assembly','Posture','Hand position','Breath and tone'];
 const TIP={flute:'No sound? Nine times out of ten it is headjoint alignment, not you.',clarinet:'Keep a spare reed in your case. Reeds die at the worst possible moment.',sax:'Never leave a reed on the mouthpiece in a hot car. It warps.',trumpet:'Valve oil is cheap. A stuck valve mid-concert is not.',trombone:'Lock the slide before you carry it. Dented slides are the sad kind of dented.',horn:'Horn notes sit close together, so your ear matters more than your fingers. Sing it first.',tuba:'Breathe like you are filling a balloon in your stomach. The tuba does the rest.',perc:'Practice with a metronome. You are the pulse of the band. No pressure.',strings:'Loosen the bow when you are done. A tight bow warps over time.'};
 const G={
 flute:['Flute',['Hold the body by the plain tube, not the keys. Twist the headjoint in gently, then add the foot joint. Line the hole in the lip plate up with the middle of the first key.','Stand or sit tall, feet shoulder-width. The flute points out to your right, a little downward. Turn your head left, keep shoulders loose.','Left thumb on the B♭ lever, right thumb under the body for balance. Fingers curved like you are holding a small ball, pads (not tips) on keys.','Say "poo" so your lips relax. Aim the air across the hole like blowing over a bottle. Roll the headjoint slightly in or out until it sounds full.']],
@@ -24,9 +24,8 @@ strings:['Violin / cello',['Loosen the bow hair to about a pencil width from the
 let cur='flute';
 function guide(){
   $('#tabs').innerHTML=Object.entries(G).map(([k,v])=>`<button class="pill" role="tab" id="t-${k}" aria-selected="${k===cur}" aria-controls="guide" tabindex="${k===cur?0:-1}" data-k="${k}">${v[0]}</button>`).join('');
-  const g=$('#guide'),c=cur;g.setAttribute('aria-labelledby','t-'+c);$('#tip').textContent='Mel says: '+TIP[c];
+  const g=$('#guide'),c=cur;g.setAttribute('aria-labelledby','t-'+c);$('#tip').textContent='Tip: '+TIP[c];
   g.innerHTML=G[c][1].map((t,i)=>`<article class="box"><span class="num" aria-hidden="true">Step ${i+1}</span><h4 class="hand">${T[i]}</h4><p>${t}</p></article>`).join('');
-  G[c][1].forEach((_,i)=>{const im=new Image();im.alt=`${G[c][0]}: ${T[i]}`;im.onload=()=>{if(cur===c&&g.children[i])g.children[i].prepend(im)};im.src=`images/${c}-${i+1}.jpg`});
 }
 $('#tabs').onclick=e=>{const k=e.target.dataset.k;if(k){cur=k;guide();$('#t-'+k).focus()}};
 $('#tabs').onkeydown=e=>{const ks=Object.keys(G),d={ArrowRight:1,ArrowLeft:-1}[e.key];if(d){cur=ks[(ks.indexOf(cur)+d+ks.length)%ks.length];guide();$('#t-'+cur).focus();e.preventDefault()}};
@@ -34,7 +33,7 @@ $('#tabs').onkeydown=e=>{const ks=Object.keys(G),d={ArrowRight:1,ArrowLeft:-1}[e
 /* ---------- Music engine ---------- */
 const L='CDEFGAB',N=[0,2,4,5,7,9,11],ST=[[0,2,4,5,7,9,11],[0,2,3,5,7,8,10]];
 const MAJ='C Db D Eb E F F# G Ab A Bb B'.split(' '),MIN='C C# D Eb E F F# G G# A Bb B'.split(' ');
-const INST={'Concert pitch (flute, oboe, trombone, tuba, bells)':0,'B♭ (clarinet, trumpet, tenor sax)':2,'E♭ (alto or bari sax)':9,'F (French horn)':7};
+const I=[['Flute',0,72,'flute'],['Oboe',0,67,'oboe'],['Clarinet (B♭)',2,60,'clarinet'],['Trumpet (B♭)',2,62,'trumpet'],['Alto sax (E♭)',9,60,'alto_sax'],['Tenor sax (B♭)',2,52,'tenor_sax'],['Bari sax (E♭)',9,48,'baritone_sax'],['Trombone',0,48,'trombone'],['French horn (F)',7,55,'french_horn'],['Tuba',0,36,'tuba'],['Violin',0,72,'violin'],['Cello',0,48,'cello'],['Mallet percussion',0,60,'marimba']];
 function scale(p,m){const t=(m?MIN:MAJ)[p],li=L.indexOf(t[0]);
   return ST[m].map((s,k)=>{const l=L[(li+k)%7],d=((p+s-N[L.indexOf(l)])%12+18)%12-6;return l+(d>0?'#'.repeat(d):'b'.repeat(-d))})}
 const acc=s=>s.filter(n=>n.length>1);
@@ -42,12 +41,12 @@ const ct=s=>{const a=acc(s);return a.length?a.length+(a[0][1]=='#'?' sharp':' fl
 const sig=s=>{const a=acc(s);return a.length?ct(s)+': '+a.map(fm).join(' '):ct(s)};
 let mode=0;
 function keys(){const v=$('#key').value||0;$('#key').innerHTML=(mode?MIN:MAJ).map((n,i)=>`<option value="${i}">${fm(n)} ${mode?'minor':'major'}</option>`).join('');$('#key').value=v}
-function scales(){const r=+$('#key').value,sh=+$('#inst').value,w=(r+sh)%12,c=scale(r,mode),x=scale(w,mode),nm=mode?MIN:MAJ;
+function scales(){const r=+$('#key').value,sh=I[+$('#inst').value][1],w=(r+sh)%12,c=scale(r,mode),x=scale(w,mode),nm=mode?MIN:MAJ;
   $('#concert').innerHTML=c.map(n=>`<span>${fm(n)}</span>`).join('');
   $('#written').innerHTML=x.map(n=>`<span>${fm(n)}</span>`).join('');
   $('#sigc').textContent=`Concert ${fm(nm[r])} ${mode?'minor':'major'}. ${sig(c)}`;
   $('#sigw').textContent=sh?`You read ${fm(nm[w])} ${mode?'minor':'major'}. ${sig(x)}`:'Concert pitch instruments read the same notes the band hears.'}
-$('#inst').innerHTML=Object.entries(INST).map(([k,v])=>`<option value="${v}">${k}</option>`).join('');
+$('#inst').innerHTML=I.map((x,i)=>`<option value="${i}">${x[0]}</option>`).join('');
 $('#mode').onchange=()=>{mode=+$('#mode').value;keys();scales()};
 $('#key').onchange=$('#inst').onchange=scales;keys();scales();
 
@@ -55,8 +54,21 @@ let ac;const cx=()=>{ac=ac||new(window.AudioContext||window.webkitAudioContext)(
 const hz=m=>440*2**((m-69)/12);
 function tone(f,t,d,v=.2,ty='triangle'){const c=cx(),o=c.createOscillator(),g=c.createGain();o.type=ty;o.frequency.value=f;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(v,t+.01);g.gain.exponentialRampToValueAtTime(.001,t+d);o.connect(g);g.connect(c.destination);o.start(t);o.stop(t+d+.05)}
 const mark=i=>$$('#concert span,#written span').forEach((e,j)=>e.classList.toggle('on',i>=0&&j%7==i));
-$('#play').onclick=()=>{const c=cx(),r=60+(+$('#key').value),st=ST[mode],up=st.map((s,i)=>[i,r+s]),seq=[...up,[0,r+12],...up.reverse()];
-  seq.forEach(([i,m],k)=>{tone(hz(m),c.currentTime+k*.4,.45);setTimeout(()=>mark(i),k*400)});setTimeout(()=>mark(-1),seq.length*400)};
+function synth(f,t,d){const c=cx(),o=c.createOscillator(),l=c.createBiquadFilter(),g=c.createGain();o.type='sawtooth';o.frequency.value=f;l.type='lowpass';l.frequency.setValueAtTime(f*2,t);l.frequency.linearRampToValueAtTime(f*5,t+.08);l.frequency.linearRampToValueAtTime(f*3,t+d);g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.18,t+.04);g.gain.setValueAtTime(.18,t+Math.max(.05,d-.08));g.gain.linearRampToValueAtTime(0,t+d);o.connect(l);l.connect(g);g.connect(c.destination);o.start(t);o.stop(t+d+.02)}
+let libP;const SF={},SFL={};
+function lib(){return libP||(libP=new Promise(res=>{
+  const urls=['https://cdn.jsdelivr.net/npm/soundfont-player@0.12.0/dist/soundfont-player.min.js','https://unpkg.com/soundfont-player@0.12.0/dist/soundfont-player.min.js'];
+  const next=()=>{const u=urls.shift();if(!u)return res(false);const e=document.createElement('script');e.src=u;e.onload=()=>res(!!window.Soundfont);e.onerror=next;document.head.append(e)};next()}))}
+async function loadSF(n){if(SF[n])return SF[n];if(!(await lib()))return null;
+  return SFL[n]||(SFL[n]=Soundfont.instrument(cx(),n,{soundfont:'FluidR3_GM'}).then(p=>SF[n]=p).catch(()=>{delete SFL[n];return null}))}
+async function noteSeq(snd,seq,dur,gap){const c=cx(),p=await loadSF(snd),t0=c.currentTime+.1;
+  seq.forEach(([i,m],k)=>{const t=t0+k*gap;
+    if(p)p.play(m,t,{duration:dur,gain:1.6,adsr:[.03,.1,.85,.2]});else synth(hz(m),t,dur);
+    setTimeout(()=>mark(i),Math.max(0,(t-c.currentTime)*1000))});
+  await new Promise(r=>setTimeout(r,seq.length*gap*1000+300));mark(-1)}
+$('#play').onclick=async()=>{const b=$('#play'),lab=b.textContent,x=I[+$('#inst').value],p=+$('#key').value,st=ST[mode],r=x[2]+(p>6?p-12:p),up=st.map((s,i)=>[i,r+s]),seq=[...up,[0,r+12],...[...up].reverse()];
+  b.disabled=true;b.textContent='Loading '+x[0].replace(/ \(.*\)/,'').toLowerCase()+'…';
+  await noteSeq(x[3],seq,.5,.42);b.disabled=false;b.textContent=lab};
 
 const V=[['C',[]],['C#/Db',[1,2,3]],['D',[1,3]],['Eb',[2,3]],['E',[1,2]],['F',[1]],['F#/Gb',[2]],['G',[]],['Ab',[2,3]],['A',[1,2]],['Bb',[1]],['B',[2]]];
 $('#notebtns').innerHTML=V.map((n,i)=>`<button aria-pressed="false" data-i="${i}">${fm(n[0])}</button>`).join('');
@@ -64,7 +76,7 @@ $('#valves').innerHTML=[1,2,3].map(i=>`<div class="valve" id="v${i}"></div>`).jo
 $('#notebtns').onclick=e=>{const b=e.target.closest('button');if(!b)return;const v=V[+b.dataset.i][1];
   $$('#notebtns button').forEach(x=>x.setAttribute('aria-pressed',x===b));
   [1,2,3].forEach(i=>$('#v'+i).classList.toggle('on',v.includes(i)));
-  $('#vt').textContent=v.length?'Valves '+v.join(' + '):'Open (no valves)'};
+  $('#vt').textContent=v.length?'Valves '+v.join(' + '):'Open (no valves)';noteSeq('trumpet',[[-1,58+(+b.dataset.i)]],.9,1)};
 
 /* ---------- Flip cards ---------- */
 function wheel(){const M='C G D A E B F♯ D♭ A♭ E♭ B♭ F'.split(' '),m='Am Em Bm F♯m C♯m G♯m E♭m B♭m Fm Cm Gm Dm'.split(' '),a=['0','1♯','2♯','3♯','4♯','5♯','6','5♭','4♭','3♭','2♭','1♭'];
@@ -72,10 +84,10 @@ function wheel(){const M='C G D A E B F♯ D♭ A♭ E♭ B♭ F'.split(' '),m='
     return `<text ${p(76,4)} font-size="13" font-weight="700" fill="currentColor">${k}</text><text ${p(50,3)} font-size="9" style="fill:var(--mut)">${m[i]}</text><text ${p(97,3)} font-size="8" font-weight="700" style="fill:var(--ct)">${a[i]}</text>`}).join('')+'</svg>'}
 const kb='<svg viewBox="0 0 175 70" width="200" class="mx" role="img" aria-label="Piano keys C to B">'+[0,1,2,3,4,5,6].map(i=>`<rect x="${i*25}" y="0" width="25" height="70" fill="#fff" stroke="#3b3226"/><text x="${i*25+12}" y="64" text-anchor="middle" font-size="9" fill="#3b3226">${'CDEFGAB'[i]}</text>`).join('')+[1,2,4,5,6].map(i=>`<rect x="${i*25-7}" y="0" width="14" height="40" fill="#2b2218"/>`).join('')+'</svg>';
 const CARDS=[
-['Circle of Fifths','Key signatures, minus the panic.','#E9A83B',wheel()+'<p>Clockwise adds a sharp, counter-clockwise adds a flat. The small letters inside are relative minors, and they share the same key signature.</p>'],
-['Interval math','For the spreadsheet brain.','#8FA98B','<p>Count half-steps. m2=1, M2=2, m3=3, M3=4, P4=5, tritone=6, P5=7, m6=8, M6=9, m7=10, M7=11, octave=12.</p><p>Major scale pattern: <b>W W H W W W H</b>. Minor third + major third stacks to a perfect fifth (3+4=7).</p>'],
-['Color & mood','For the vibes brain.','#E2634E','<p><b>C</b> plain and honest, <b>G</b> sunny, <b>D</b> bright and triumphant, <b>F</b> pastoral and calm, <b>B♭</b> warm and round, <b>E♭</b> heroic, <b>A minor</b> lonely, <b>D minor</b> serious and stormy.</p><p>Try it: play a scale, then write down the color you hear.</p>'],
-['Keyboard map','For the see-it-to-get-it brain.','#C9B79C',kb+'<p>Black keys come in groups of 2 and 3. C is the white key just left of the two-black-key group. Every neighboring key is one half-step.</p>']];
+['Circle of Fifths','Key signatures','#D9962B',wheel()+'<p>Clockwise adds a sharp, counter-clockwise adds a flat. The small letters inside are relative minors, and they share the same key signature.</p>'],
+['Interval math','By the numbers','#4F8A74','<p>Count half-steps. m2=1, M2=2, m3=3, M3=4, P4=5, tritone=6, P5=7, m6=8, M6=9, m7=10, M7=11, octave=12.</p><p>Major scale pattern: <b>W W H W W W H</b>. Minor third + major third stacks to a perfect fifth (3+4=7).</p>'],
+['Color & mood','By feel','#C4624D','<p><b>C</b> plain and honest, <b>G</b> sunny, <b>D</b> bright and triumphant, <b>F</b> pastoral and calm, <b>B♭</b> warm and round, <b>E♭</b> heroic, <b>A minor</b> lonely, <b>D minor</b> serious and stormy.</p><p>Try it: play a scale, then write down the color you hear.</p>'],
+['Keyboard map','By sight','#8A7F70',kb+'<p>Black keys come in groups of 2 and 3. C is the white key just left of the two-black-key group. Every neighboring key is one half-step.</p>']];
 $('#cards').innerHTML=CARDS.map(c=>`<button class="flip" aria-pressed="false" style="--c:${c[2]}"><div class="in"><div class="face front"><h4 class="hand">${c[0]}</h4><p>${c[1]}</p><p class="mut" style="margin-top:40px">Tap to flip</p></div><div class="face back">${c[3]}</div></div></button>`).join('');
 $('#cards').onclick=e=>{const c=e.target.closest('.flip');if(c)c.setAttribute('aria-pressed',c.getAttribute('aria-pressed')!='true')};
 
@@ -108,14 +120,14 @@ function mk(n){const out=[],seen=new Set;while(out.length<n){const q=pick(GEN)()
 function qstart(){qs=mk(10);qn=0;sc=0;qshow()}
 function qshow(){const q=qs[qn],z=$('#quiz');
   if(!q){if(sc>best){best=sc;ls('mb-best',sc)}
-    z.innerHTML=`<h3 class="hand big" id="qq" tabindex="-1">You scored ${sc} / ${qs.length}</h3><p>${sc==10?'Perfect. Frame it.':sc>6?'Solid. One more round and those key signatures will stick.':'Rough round, totally normal. Read the explanations and go again.'} Best score: ${best}.</p><button class="btn" id="again" style="margin-top:12px">Play again</button>`;$('#qq').focus();return}
-  z.innerHTML=`<p class="mut">Question ${qn+1} of ${qs.length} · Score ${sc}</p><h3 class="hand big" id="qq" tabindex="-1">${fm(q.q)}</h3><div class="opts">${q.o.map((o,i)=>`<button class="opt" data-i="${i}">${fm(o)}</button>`).join('')}</div><p id="fb" role="status"></p>`;$('#qq').focus()}
+    z.innerHTML=`<h3 class="hand big" id="qq" tabindex="-1">You scored ${sc} / ${qs.length}</h3><p>${sc==10?'Perfect score.':sc>6?'Nice work. Another round will lock it in.':'Keep going. Review the explanations and try another round.'} Best score: ${best}.</p><button class="btn" id="again" style="margin-top:12px">Play again</button>`;$('#qq').focus();return}
+  z.innerHTML=`<div class="bar"><i style="width:${qn/qs.length*100}%"></i></div><p class="mut">Question ${qn+1} of ${qs.length} · Score ${sc}</p><h3 class="hand big" id="qq" tabindex="-1">${fm(q.q)}</h3><div class="opts">${q.o.map((o,i)=>`<button class="opt" data-i="${i}">${fm(o)}</button>`).join('')}</div><p id="fb" role="status"></p>`;$('#qq').focus()}
 $('#quiz').onclick=e=>{const b=e.target.closest('button');if(!b)return;
   if(b.id=='again')return qstart();if(b.id=='next'){qn++;return qshow()}
   if(!b.dataset.i||$('#fb').dataset.done)return;
   const q=qs[qn],ok=q.o[+b.dataset.i]==q.a;if(ok)sc++;
   $$('.opt').forEach(x=>{x.disabled=true;if(q.o[+x.dataset.i]==q.a)x.classList.add('good');else if(x===b)x.classList.add('bad')});
-  $('#fb').dataset.done=1;$('#fb').innerHTML=`<b>${ok?'Yep!':'Close, but no.'}</b> ${fm(q.w)} <button class="btn" id="next">${qn+1<qs.length?'Next':'See score'}</button>`;$('#next').focus()};
+  $('#fb').dataset.done=1;$('#fb').innerHTML=`<b>${ok?'Correct.':'Not quite.'}</b> ${fm(q.w)} <button class="btn" id="next">${qn+1<qs.length?'Next':'See score'}</button>`;$('#next').focus()};
 qstart();
 
 /* ---------- Metronome & tuning tones ---------- */
@@ -130,20 +142,20 @@ $('#drone').onclick=e=>{const b=e.target.closest('button');if(!b)return;const wa
   const c=cx(),o=c.createOscillator(),g=c.createGain();o.frequency.value=+b.dataset.f;g.gain.value=.15;o.connect(g);g.connect(c.destination);o.start();dr=o;b.setAttribute('aria-pressed','true')};
 
 /* ---------- Maestro Mel ---------- */
-const A=[[/cold|temperature|winter/,'Cold air = flat horn. Breathe through it for a minute and play a few easy notes <i>before</i> you tune, or you will end up sharp once it warms up.'],
-[/order.*flats|flats.*order/,'Flats: <b>B E A D G C F</b>. “Battle Ends And Down Goes Charles’ Father.” Yes, it is a dumb sentence. That is why it works.'],
+const A=[[/cold|temperature|winter/,'Cold air makes an instrument go flat. Warm it with your breath and play a few easy notes before you tune, or you will end up sharp once it warms up.'],
+[/order.*flats|flats.*order/,'Flats: <b>B E A D G C F</b>. “Battle Ends And Down Goes Charles’ Father.”'],
 [/order.*sharps|sharps.*order/,'Sharps: <b>F C G D A E B</b>. It is just the flats backwards, so you only memorize once.'],
-[/out of tune|tun(e|ing)\b|\bflat\b|\bsharp\b|pitch/,'Match a concert B♭ or A. <b>Sharp</b>? Pull the tuning slide or mouthpiece out a little. <b>Flat</b>? Push in. Still off? Check your air and posture before blaming the horn. The tuning tones are in Practice tools.'],
+[/out of tune|tun(e|ing)\b|\bflat\b|\bsharp\b|pitch/,'Match a concert B♭ or A. <b>Sharp</b>? Pull the tuning slide or mouthpiece out a little. <b>Flat</b>? Push in. Still off? Check your air and posture too. The tuning tones are in Practice tools.'],
 [/squeak|reed|chirp/,'Squeaks usually mean too much reed in your mouth, too much bite, or a finger not fully covering a hole. Less mouthpiece, firm corners, check your pads.'],
-[/dizz|light.?head|pass out|breath/,'Dizzy? Stop and sit down, no heroics. Take slower, lower belly breaths and do not blow harder than the music needs.'],
+[/dizz|light.?head|pass out|breath/,'If you feel dizzy, stop and sit down. Take slower, lower belly breaths and do not blow harder than the music needs.'],
 [/circle|fifths?/,'Clockwise on the circle of fifths adds a sharp, counter-clockwise adds a flat. The first flashcard has the whole wheel.'],
 [/transpos|concert|written/,'B♭ instruments read a major 2nd above concert, E♭ instruments a major 6th above, and F horn a perfect 5th above. Try it in the transposition explorer.'],
-[/metronome|tempo|rhythm|rush|drag|count/,'Set the metronome slower than your ego wants, play it clean three times, then bump it up 4 BPM. Count out loud. Yes, out loud.'],
+[/metronome|tempo|rhythm|rush|drag|count/,'Set the metronome slower than you think you need, play the passage cleanly three times, then raise it 4 BPM. Count out loud.'],
 [/practi|warm.?up|routine/,'Short and focused beats long and tired. Try 5 minutes of long tones, 5 of scales, then your hardest 4 bars, slowly.'],
 [/sight.?read|reading music|read notes/,'Before you play a note: key signature, time signature, then scan for the scariest bar. Keep the beat going even when you slip.'],
 [/nervous|audition|perform|stage|solo/,'Nerves are normal. Practice the hard spots slowly, take one low breath before you start, and play it for a friend first.'],
-[/clean|oil|grease|swab|maint|valve/,'Valve oil, cork grease, swab after playing. Boring, cheap, and way better than a repair bill. Ask your director for your instrument’s routine.'],
-[/^(hi|hello|hey|yo)\b/,'Hey! I am Mel. Ask me about reeds, scales, tuning or practice.']];
+[/clean|oil|grease|swab|maint|valve/,'Valve oil, cork grease, swab after playing. Cheap, quick, and much better than a repair bill. Ask your director for your instrument’s routine.'],
+[/^(hi|hello|hey|yo)\b/,'Hi, I am Mel. Ask me about reeds, scales, tuning or practice.']];
 const log=$('#log');
 function say(t,c){log.insertAdjacentHTML('beforeend',`<div class="m ${c}">${t}</div>`);log.scrollTop=log.scrollHeight}
 const esc=t=>t.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
@@ -178,7 +190,7 @@ async function ask(t){
 $('#chips').innerHTML=['Why is my flute flat when it is cold?','Order of flats?','Clarinet squeaks'].map(t=>`<button class="chip" type="button">${t}</button>`).join('');
 $('#chips').onclick=e=>{if(e.target.classList.contains('chip'))ask(e.target.textContent)};
 function drawer(open){const d=$('#drawer');d.hidden=!open;$('#mel').setAttribute('aria-expanded',open);
-  if(open){if(!log.children.length)say('Hey, it’s Mel. Reeds, scales, tuning, practice: I have opinions. Ask away.','bot');$('#q').focus()}else $('#mel').focus()}
+  if(open){if(!log.children.length)say('Hi, I’m Mel. Ask me about instruments, scales, tuning or practice.','bot');$('#q').focus()}else $('#mel').focus()}
 $('#mel').onclick=()=>drawer($('#drawer').hidden);$('#x').onclick=()=>drawer(false);
 $('#drawer').onkeydown=e=>{if(e.key=='Escape')drawer(false)};
 $('#f').onsubmit=e=>{e.preventDefault();const v=$('#q').value.trim();if(v){ask(v);$('#q').value=''}};

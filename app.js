@@ -1,3 +1,7 @@
+// Mel's AI brain. Paste your Worker URL between the quotes (see README, "Make Mel a real AI chatbot").
+// Leave it empty and Mel still works with built-in answers and the teach-me notebook.
+const MEL_API='';
+
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const fm=s=>s.replace(/([A-G])#/g,'$1♯').replace(/([A-G])b(?![a-z])/g,'$1♭');
 const rnd=n=>Math.floor(Math.random()*n),pick=a=>a[rnd(a.length)],shuf=a=>[...a].sort(()=>Math.random()-.5);
@@ -142,8 +146,35 @@ const A=[[/cold|temperature|winter/,'Cold air = flat horn. Breathe through it fo
 [/^(hi|hello|hey|yo)\b/,'Hey! I am Mel. Ask me about reeds, scales, tuning or practice.']];
 const log=$('#log');
 function say(t,c){log.insertAdjacentHTML('beforeend',`<div class="m ${c}">${t}</div>`);log.scrollTop=log.scrollHeight}
-function ask(t){say(t.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])),'me');const l=t.toLowerCase();
-  setTimeout(()=>say((A.find(a=>a[0].test(l))||[0,'Ha, you stumped me. Ask your director or section leader, then come back and tell me what they said. I take notes.'])[1],'bot'),450)}
+const esc=t=>t.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+const fmtAI=t=>esc(t).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/\n/g,'<br>');
+let hist=[],busy=false,pend=null;
+const taught=()=>{try{return JSON.parse(ls('mb-taught')||'[]')}catch(e){return[]}};
+const words=t=>t.toLowerCase().match(/[a-z0-9♯♭#]+/g)||[];
+function recall(l){const w=new Set(words(l));let best=null,bs=0;
+  for(const [q,a] of taught()){const qw=words(q),n=qw.filter(x=>w.has(x)).length,sc=n/Math.max(qw.length,w.size,1);if(sc>bs){bs=sc;best=a}}
+  return bs>=.6?best:null}
+function local(t){const l=t.toLowerCase(),r=recall(l);
+  if(r)return esc(r)+' <span class="mut">(you taught me this)</span>';
+  const a=A.find(a=>a[0].test(l));if(a)return a[1];
+  pend=t;return 'I do not know that one yet. If you know the answer, type it and I will save it on this device. Or say "skip".'}
+async function ask(t){
+  if(busy){say('One sec, still working on your last question.','bot');return}
+  if(pend&&/\?\s*$/.test(t))pend=null;
+  say(esc(t),'me');
+  if(pend){const q=pend;pend=null;
+    if(/^(no|nah|skip|nevermind|never mind)\b/i.test(t.trim())){say('No worries. Ask me anything else.','bot');return}
+    const k=taught();k.push([q,t.slice(0,600)]);ls('mb-taught',JSON.stringify(k.slice(-50)));
+    say('Got it, saved on this device. Ask me again and I will remember.','bot');return}
+  if(!MEL_API){setTimeout(()=>say(local(t),'bot'),450);return}
+  busy=true;hist.push({role:'user',content:t.slice(0,500)});hist=hist.slice(-12);
+  while(hist.length&&hist[0].role!='user')hist.shift();
+  const tp=document.createElement('div');tp.className='m';tp.textContent='Mel is thinking…';log.append(tp);log.scrollTop=log.scrollHeight;
+  try{const r=await fetch(MEL_API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:hist,notes:taught().slice(-10)})});
+    if(!r.ok)throw 0;const d=await r.json();if(!d.reply)throw 0;
+    hist.push({role:'assistant',content:d.reply});tp.innerHTML=fmtAI(d.reply)}
+  catch(e){hist.pop();tp.innerHTML=local(t)}
+  busy=false;log.scrollTop=log.scrollHeight}
 $('#chips').innerHTML=['Why is my flute flat when it is cold?','Order of flats?','Clarinet squeaks'].map(t=>`<button class="chip" type="button">${t}</button>`).join('');
 $('#chips').onclick=e=>{if(e.target.classList.contains('chip'))ask(e.target.textContent)};
 function drawer(open){const d=$('#drawer');d.hidden=!open;$('#mel').setAttribute('aria-expanded',open);

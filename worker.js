@@ -1,6 +1,6 @@
 // Cloudflare Worker: lets the Music Buddy site talk to Claude without exposing your API key.
-// Secrets and variables (Worker settings): ANTHROPIC_API_KEY (secret), ALLOWED_ORIGIN (e.g. https://problemsolver77.github.io),
-// and optional KNOWLEDGE_URL (e.g. https://problemsolver77.github.io/knowledge.json) so Mel can use the answers you add to knowledge.json.
+// Secrets and variables (Worker settings): ANTHROPIC_API_KEY (secret), ALLOWED_ORIGIN (e.g. https://musicbuddytheory.github.io),
+// and optional KNOWLEDGE_URL (e.g. https://musicbuddytheory.github.io/knowledge.json) so Mel can use the answers you add to knowledge.json.
 const SYSTEM = `You are Mel, a friendly cartoon music note who helps high school band students with music theory and band-room life: instruments, scales, key signatures, transposition, rhythm, tuning, practice habits and instrument care.
 Talk like a friendly older band kid: warm, a little witty, plain language, no lectures. Keep answers short (2 to 5 sentences) unless the student asks for more. Use the symbols ♭ and ♯ for flats and sharps.
 Be accurate. If you are not sure, say so and suggest asking their director or section leader. If a student mentions feeling dizzy, in pain, or unsafe, tell them to stop and talk to a teacher.

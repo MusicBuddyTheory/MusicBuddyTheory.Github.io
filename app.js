@@ -21,14 +21,19 @@ tuba:['Baritone / tuba',['Oil valves and put the mouthpiece in. Set the tuba sec
 perc:['Percussion',['Set the snare stand at waist height. Put the keyboard at hip height. Check the pad and the sticks before you play.','Stand or sit tall, feet flat, shoulders loose. Both hands start at the same height.','Matched grip: pinch the stick at the fulcrum between thumb and first finger. The other fingers wrap lightly so the stick can bounce.','Let the stick rebound and do not push into the head. Count out loud and keep a relaxed pulse.']],
 strings:['Violin / cello',['Loosen the bow hair to about a pencil width from the stick, then rosin it. Violin: set the shoulder rest. Cello: set the endpin so the C string peg sits near your left ear.','Violin: tuck under your chin, left foot slightly forward. Cello: feet flat, instrument rests on your chest and knees.','Left hand: curved fingers, thumb across from the first finger. Right hand: bent, relaxed bow hold with a rounded thumb.','Keep the bow straight and parallel to the bridge. Use slow, even bow strokes, and remember to breathe.']]
 };
-let cur='flute';
-function guide(){
-  $('#tabs').innerHTML=Object.entries(G).map(([k,v])=>`<button class="pill" role="tab" id="t-${k}" aria-selected="${k===cur}" aria-controls="guide" tabindex="${k===cur?0:-1}" data-k="${k}">${v[0]}</button>`).join('');
-  const g=$('#guide'),c=cur;g.setAttribute('aria-labelledby','t-'+c);$('#tip').textContent='Tip: '+TIP[c];
-  g.innerHTML=G[c][1].map((t,i)=>`<article class="box"><span class="num" aria-hidden="true">Step ${i+1}</span><h4 class="hand">${T[i]}</h4><p>${t}</p></article>`).join('');
-}
-$('#tabs').onclick=e=>{const k=e.target.dataset.k;if(k){cur=k;guide();$('#t-'+k).focus()}};
-$('#tabs').onkeydown=e=>{const ks=Object.keys(G),d={ArrowRight:1,ArrowLeft:-1}[e.key];if(d){cur=ks[(ks.indexOf(cur)+d+ks.length)%ks.length];guide();$('#t-'+cur).focus();e.preventDefault()}};
+let cur='flute';const seen=new Set();
+const AB={flute:'Fl',clarinet:'Cl',sax:'Sx',trumpet:'Tp',trombone:'Tb',horn:'Hn',tuba:'Tu',perc:'Pc',strings:'Vn'};
+$('#stories').innerHTML=Object.entries(G).map(([k,v])=>`<button class="story" data-k="${k}" aria-label="${v[0]} guide"><span class="ring"><span class="av">${AB[k]}</span></span>${v[0].split(' ')[0]}</button>`).join('');
+const car=$('#car'),dots=i=>$('#dots').innerHTML=T.map((_,n)=>`<i class="${n==i?'on':''}"></i>`).join('');
+function guide(){const c=cur,g=G[c];
+  $$('.story').forEach(b=>{b.classList.toggle('on',b.dataset.k===c);b.classList.toggle('seen',seen.has(b.dataset.k)&&b.dataset.k!==c)});
+  $('#gt').textContent=g[0]+' setup guide';
+  car.innerHTML=g[1].map((t,i)=>`<div class="slide" role="group" aria-label="Step ${i+1} of 4"><span class="num">Step ${i+1} of 4</span><h3>${T[i]}</h3><p>${t}</p></div>`).join('');
+  car.scrollLeft=0;dots(0);$('#cap').innerHTML=`<b>mel</b> ${TIP[c]}`}
+car.onscroll=()=>dots(Math.round(car.scrollLeft/car.clientWidth));
+$('#cprev').onclick=()=>car.scrollBy({left:-car.clientWidth,behavior:'smooth'});
+$('#cnext').onclick=()=>car.scrollBy({left:car.clientWidth,behavior:'smooth'});
+$('#stories').onclick=e=>{const b=e.target.closest('.story');if(!b)return;seen.add(cur);cur=b.dataset.k;guide();$('#guides').scrollIntoView({behavior:'smooth'})};
 
 /* ---------- Music engine ---------- */
 const L='CDEFGAB',N=[0,2,4,5,7,9,11],ST=[[0,2,4,5,7,9,11],[0,2,3,5,7,8,10]];
@@ -70,13 +75,49 @@ $('#play').onclick=async()=>{const b=$('#play'),lab=b.textContent,x=I[+$('#inst'
   b.disabled=true;b.textContent='Loading '+x[0].replace(/ \(.*\)/,'').toLowerCase()+'…';
   await noteSeq(x[3],seq,.5,.42);b.disabled=false;b.textContent=lab};
 
-const V=[['C',[]],['C#/Db',[1,2,3]],['D',[1,3]],['Eb',[2,3]],['E',[1,2]],['F',[1]],['F#/Gb',[2]],['G',[]],['Ab',[2,3]],['A',[1,2]],['Bb',[1]],['B',[2]]];
-$('#notebtns').innerHTML=V.map((n,i)=>`<button aria-pressed="false" data-i="${i}">${fm(n[0])}</button>`).join('');
-$('#valves').innerHTML=[1,2,3].map(i=>`<div class="valve" id="v${i}"></div>`).join('');
-$('#notebtns').onclick=e=>{const b=e.target.closest('button');if(!b)return;const v=V[+b.dataset.i][1];
-  $$('#notebtns button').forEach(x=>x.setAttribute('aria-pressed',x===b));
-  [1,2,3].forEach(i=>$('#v'+i).classList.toggle('on',v.includes(i)));
-  $('#vt').textContent=v.length?'Valves '+v.join(' + '):'Open (no valves)';noteSeq('trumpet',[[-1,58+(+b.dataset.i)]],.9,1)};
+const KEYS=['a','s','d','f'];/* keyboard keys for valves 1 to 4. Q and W change register. Trombone uses 1 to 7. */
+const VS={1:2,2:1,3:3,4:5},F3={0:[],1:[2],2:[1],3:[1,2],4:[2,3],5:[1,3],6:[1,2,3]},F4={...F3,5:[4],6:[2,4],7:[1,4],8:[3,4],9:[2,3,4],10:[1,3,4],11:[1,2,3,4]};
+const FI={trumpet:{n:'Trumpet (B♭)',ab:'Tp',sf:'trumpet',off:2,v:3,p:[58,65,70,74,77,82],t:'Written pitch. A B♭ trumpet sounds a major 2nd lower.'},
+euph:{n:'Euphonium / baritone',ab:'Eu',sf:'trombone',off:0,v:4,p:[46,53,58,62,65,70],t:'Concert pitch, four valves.'},
+tuba:{n:'Tuba (BB♭)',ab:'Tu',sf:'tuba',off:0,v:4,p:[34,41,46,50,53,58,62],t:'Concert pitch, four valves.'},
+horn:{n:'French horn (F)',ab:'Hn',sf:'french_horn',off:7,v:3,p:[41,48,53,57,60,65,69,72],t:'Written pitch, F side of a double horn. Horn sounds a perfect 5th lower.'},
+trombone:{n:'Trombone',ab:'Tb',sf:'trombone',off:0,v:0,p:[46,53,58,62,65,70,74],t:'Concert pitch. Slide positions 1 to 7.'}};
+let fk='trumpet',pi=1,pos=1,fview=false;const dn=new Set();
+const FIk=()=>FI[fk],isT=()=>FIk().v==0,tbl=()=>FIk().v==4?F4:F3;
+const depth=()=>isT()?pos-1:[...dn].reduce((a,v)=>a+VS[v],0);
+const nm=m=>fm(MAJ[m%12]+(Math.floor(m/12)-1));
+async function blip(sf,m){const c=cx(),p=await loadSF(sf);if(p)p.play(m,c.currentTime,{duration:.9,gain:1.6,adsr:[.03,.1,.85,.2]});else synth(hz(m),c.currentTime,.7)}
+function fRender(){const f=FIk();$('#ddav').textContent=f.ab;$('#ddn').textContent=f.n;$('#fnote').textContent=f.t;
+  $('#fctl').innerHTML=isT()?[1,2,3,4,5,6,7].map(n=>`<button class="vb pos" data-pos="${n}" aria-pressed="false" aria-label="Position ${n}">${n}</button>`).join(''):Array.from({length:f.v},(_,i)=>`<button class="vb" data-v="${i+1}" aria-pressed="false" aria-label="Valve ${i+1}"><b>${i+1}</b><small>${KEYS[i].toUpperCase()}</small></button>`).join('');
+  $('#fhint').textContent=isT()?'Keyboard: keys 1 to 7 pick the slide position, Q and W change register. On a phone, tap a position.':`Keyboard: hold ${KEYS.slice(0,f.v).join(' ').toUpperCase()} for the valves, Q and W change register. On a phone, hold the valves with your fingers.`;
+  fUpd(false)}
+function fUpd(snd){const f=FIk(),d=depth(),m=f.p[pi]-d,dm=isT()||f.v==3?7:12,gap=Math.min(pi?f.p[pi]-f.p[pi-1]:dm,dm);
+  $$('#fctl .vb').forEach(b=>{const on=isT()?+b.dataset.pos==pos:dn.has(+b.dataset.v);b.classList.toggle('down',on);b.setAttribute('aria-pressed',on)});
+  $('#rn').textContent=nm(m+f.off);
+  $('#rs').textContent=(f.off?'Sounds '+nm(m)+' · ':'')+'Fingering: '+(isT()?'position '+pos:dn.size?[...dn].sort().join(' + '):'open');
+  $('#fchart').innerHTML=Array.from({length:gap},(_,k)=>`<button class="fc${k==d?' on':''}" data-d="${k}"><b>${nm(f.p[pi]-k+f.off)}</b><small>${isT()?'pos '+(k+1):(tbl()[k]||[]).join('·')||'open'}</small></button>`).join('');
+  $('#rg').textContent=`Register ${pi+1} of ${f.p.length}`;
+  if(snd)blip(f.sf,m)}
+function reg(x){pi=Math.max(0,Math.min(FIk().p.length-1,pi+x));fUpd(true)}
+$('#ddl').innerHTML=Object.entries(FI).map(([k,f])=>`<li><button data-k="${k}"><span class="av sm">${f.ab}</span>${f.n}</button></li>`).join('');
+const dd=o=>{$('#ddl').hidden=!o;$('#ddb').setAttribute('aria-expanded',o)};
+$('#ddb').onclick=()=>dd($('#ddl').hidden);
+$('#ddl').onclick=e=>{const b=e.target.closest('button');if(!b)return;fk=b.dataset.k;pi=1;pos=1;dn.clear();dd(false);fRender();$('#ddb').focus()};
+document.addEventListener('click',e=>{if(!e.target.closest('.dd'))dd(false)});
+const fc=$('#fctl');
+fc.onpointerdown=e=>{const b=e.target.closest('.vb');if(!b)return;e.preventDefault();if(b.setPointerCapture)b.setPointerCapture(e.pointerId);if(b.dataset.pos)pos=+b.dataset.pos;else dn.add(+b.dataset.v);fUpd(true)};
+fc.onpointerup=fc.onpointercancel=e=>{const b=e.target.closest('.vb');if(b&&b.dataset.v){dn.delete(+b.dataset.v);fUpd(false)}};
+fc.onclick=e=>{if(e.detail)return;const b=e.target.closest('.vb');if(!b)return;if(b.dataset.pos)pos=+b.dataset.pos;else{const v=+b.dataset.v;dn.has(v)?dn.delete(v):dn.add(v)}fUpd(true)};
+$('#fchart').onclick=e=>{const b=e.target.closest('.fc');if(!b)return;const k=+b.dataset.d;if(isT())pos=k+1;else{dn.clear();(tbl()[k]||[]).forEach(v=>dn.add(v))}fUpd(true)};
+$('#rdn').onclick=()=>reg(-1);$('#rup').onclick=()=>reg(1);
+new IntersectionObserver(([x])=>{fview=x.isIntersecting},{threshold:.25}).observe($('#fingerings'));
+const typing=e=>/INPUT|SELECT|TEXTAREA/.test(e.target.tagName);
+document.addEventListener('keydown',e=>{if(e.key=='Escape')dd(false);if(!fview||e.repeat||typing(e)||e.ctrlKey||e.metaKey||e.altKey)return;const k=e.key.toLowerCase(),i=KEYS.indexOf(k);
+  if(i>=0&&!isT()&&i<FIk().v){dn.add(i+1);fUpd(true)}
+  else if(isT()&&/^[1-7]$/.test(k)){pos=+k;fUpd(true)}
+  else if(k=='q')reg(-1);else if(k=='w')reg(1)});
+document.addEventListener('keyup',e=>{const i=KEYS.indexOf(e.key.toLowerCase());if(i>=0&&!isT()&&dn.has(i+1)){dn.delete(i+1);fUpd(false)}});
+fRender();
 
 /* ---------- Flip cards ---------- */
 function wheel(){const M='C G D A E B F♯ D♭ A♭ E♭ B♭ F'.split(' '),m='Am Em Bm F♯m C♯m G♯m E♭m B♭m Fm Cm Gm Dm'.split(' '),a=['0','1♯','2♯','3♯','4♯','5♯','6','5♭','4♭','3♭','2♭','1♭'];
@@ -84,10 +125,10 @@ function wheel(){const M='C G D A E B F♯ D♭ A♭ E♭ B♭ F'.split(' '),m='
     return `<text ${p(76,4)} font-size="13" font-weight="700" fill="currentColor">${k}</text><text ${p(50,3)} font-size="9" style="fill:var(--mut)">${m[i]}</text><text ${p(97,3)} font-size="8" font-weight="700" style="fill:var(--ct)">${a[i]}</text>`}).join('')+'</svg>'}
 const kb='<svg viewBox="0 0 175 70" width="200" class="mx" role="img" aria-label="Piano keys C to B">'+[0,1,2,3,4,5,6].map(i=>`<rect x="${i*25}" y="0" width="25" height="70" fill="#fff" stroke="#3b3226"/><text x="${i*25+12}" y="64" text-anchor="middle" font-size="9" fill="#3b3226">${'CDEFGAB'[i]}</text>`).join('')+[1,2,4,5,6].map(i=>`<rect x="${i*25-7}" y="0" width="14" height="40" fill="#2b2218"/>`).join('')+'</svg>';
 const CARDS=[
-['Circle of Fifths','Key signatures','#D9962B',wheel()+'<p>Clockwise adds a sharp, counter-clockwise adds a flat. The small letters inside are relative minors, and they share the same key signature.</p>'],
-['Interval math','By the numbers','#4F8A74','<p>Count half-steps. m2=1, M2=2, m3=3, M3=4, P4=5, tritone=6, P5=7, m6=8, M6=9, m7=10, M7=11, octave=12.</p><p>Major scale pattern: <b>W W H W W W H</b>. Minor third + major third stacks to a perfect fifth (3+4=7).</p>'],
-['Color & mood','By feel','#C4624D','<p><b>C</b> plain and honest, <b>G</b> sunny, <b>D</b> bright and triumphant, <b>F</b> pastoral and calm, <b>B♭</b> warm and round, <b>E♭</b> heroic, <b>A minor</b> lonely, <b>D minor</b> serious and stormy.</p><p>Try it: play a scale, then write down the color you hear.</p>'],
-['Keyboard map','By sight','#8A7F70',kb+'<p>Black keys come in groups of 2 and 3. C is the white key just left of the two-black-key group. Every neighboring key is one half-step.</p>']];
+['Circle of Fifths','Key signatures','#F5C542',wheel()+'<p>Clockwise adds a sharp, counter-clockwise adds a flat. The small letters inside are relative minors, and they share the same key signature.</p>'],
+['Interval math','By the numbers','#FFE27A','<p>Count half-steps. m2=1, M2=2, m3=3, M3=4, P4=5, tritone=6, P5=7, m6=8, M6=9, m7=10, M7=11, octave=12.</p><p>Major scale pattern: <b>W W H W W W H</b>. Minor third + major third stacks to a perfect fifth (3+4=7).</p>'],
+['Color & mood','By feel','#E8761E','<p><b>C</b> plain and honest, <b>G</b> sunny, <b>D</b> bright and triumphant, <b>F</b> pastoral and calm, <b>B♭</b> warm and round, <b>E♭</b> heroic, <b>A minor</b> lonely, <b>D minor</b> serious and stormy.</p><p>Try it: play a scale, then write down the color you hear.</p>'],
+['Keyboard map','By sight','#9A9A9A',kb+'<p>Black keys come in groups of 2 and 3. C is the white key just left of the two-black-key group. Every neighboring key is one half-step.</p>']];
 $('#cards').innerHTML=CARDS.map(c=>`<button class="flip" aria-pressed="false" style="--c:${c[2]}"><div class="in"><div class="face front"><h4 class="hand">${c[0]}</h4><p>${c[1]}</p><p class="mut" style="margin-top:40px">Tap to flip</p></div><div class="face back">${c[3]}</div></div></button>`).join('');
 $('#cards').onclick=e=>{const c=e.target.closest('.flip');if(c)c.setAttribute('aria-pressed',c.getAttribute('aria-pressed')!='true')};
 
@@ -161,10 +202,11 @@ function say(t,c){log.insertAdjacentHTML('beforeend',`<div class="m ${c}">${t}</
 const esc=t=>t.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
 const fmtAI=t=>esc(t).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/\n/g,'<br>');
 let hist=[],busy=false,pend=null;
+let KB=[];fetch('knowledge.json').then(r=>r.ok?r.json():[]).then(j=>{if(Array.isArray(j))KB=j}).catch(()=>{});
 const taught=()=>{try{return JSON.parse(ls('mb-taught')||'[]')}catch(e){return[]}};
 const words=t=>t.toLowerCase().match(/[a-z0-9♯♭#]+/g)||[];
 function recall(l){const w=new Set(words(l));let best=null,bs=0;
-  for(const [q,a] of taught()){const qw=words(q),n=qw.filter(x=>w.has(x)).length,sc=n/Math.max(qw.length,w.size,1);if(sc>bs){bs=sc;best=a}}
+  for(const [q,a] of [...KB.map(x=>[x.q,x.a]),...taught()]){const qw=words(q),n=qw.filter(x=>w.has(x)).length,sc=n/Math.max(qw.length,w.size,1);if(sc>bs){bs=sc;best=a}}
   return bs>=.6?best:null}
 function local(t){const l=t.toLowerCase(),r=recall(l);
   if(r)return esc(r)+' <span class="mut">(you taught me this)</span>';

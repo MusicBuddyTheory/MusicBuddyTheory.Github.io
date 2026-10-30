@@ -4,10 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="color-scheme" content="dark">
-<meta name="theme-color" content="#0a1f44">
+<meta name="theme-color" content="#000000">
 <title>Music Buddy Theory | Setup Guides, Fingering Charts and Practice Tools for Band Students</title>
 <meta name="description" content="Instrument setup guides, playable fingering charts, a transposition explorer, flashcards, a practice quiz, a metronome and tuning tones for band students.">
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600;700;800&display=swap">
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -19,9 +22,9 @@
 <symbol id="i-cards" viewBox="0 0 24 24"><rect x="3" y="8" width="14" height="12" rx="2"/><path d="M7 8V6a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/></symbol>
 <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l3 2M9 3h6"/></symbol></svg>
 <a class="skip" href="#guides">Skip to content</a>
-<header class="top"><a class="brand" href="#top" aria-label="Music Buddy Theory, home"><img class="lm" src="logo-mark.svg" width="26" height="38" alt=""><div class="wm"><b>MUSIC BUDDY</b><i>THEORY</i></div></a></header>
+<header class="top"><a class="brand" href="#top" aria-label="Music Buddy Theory, home"><img class="lm" src="logo-mark.svg" width="34" height="34" alt=""><div class="wm"><b>MUSIC BUDDY</b><i>THEORY</i></div></a></header>
 <nav class="tabs" aria-label="Primary">
-<a class="brand" href="#top" aria-label="Music Buddy Theory, home"><img class="lm" src="logo-mark.svg" width="26" height="38" alt=""><div class="wm"><b>MUSIC BUDDY</b><i>THEORY</i></div></a>
+<a class="brand" href="#top" aria-label="Music Buddy Theory, home"><img class="lm" src="logo-mark.svg" width="34" height="34" alt=""><div class="wm"><b>MUSIC BUDDY</b><i>THEORY</i></div></a>
 <a href="#guides"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-guide"/></svg><span>Guides</span></a>
 <a href="#scales"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-keys"/></svg><span>Scales</span></a>
 <a href="#fingerings"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-valve"/></svg><span>Fingerings</span></a>
@@ -30,7 +33,7 @@
 </nav>
 <main id="top">
 <section class="prof">
-  <div class="ring lg"><span class="av"><img src="logo-mark.svg" width="42" height="62" alt="Music Buddy Theory logo"></span></div>
+  <div class="ring lg"><span class="av"><img src="logo-mark.svg" width="50" height="50" alt="Music Buddy Theory logo"></span></div>
   <div><h1>Music Buddy Theory</h1><div class="stats"><div><b>9</b>instruments</div><div><b>5</b>fingering charts</div><div><b>10</b>question quizzes</div></div></div>
 </section>
 <p class="bio"><b>Band room starter kit</b><br><span class="mut" style="font-size:14px">Setup guides, scales, fingerings and practice tools for band students. Ask Mel anything music.</span></p>
@@ -63,15 +66,22 @@
   <header class="ph"><span class="av sm"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-valve"/></svg></span><div><b>Fingering chart</b><span class="s">Pick an instrument and key, then hold the valves</span></div></header>
   <div class="pad">
     <div class="dd"><button class="ddb" id="ddb" aria-haspopup="true" aria-expanded="false" aria-controls="ddl"><span class="av sm" id="ddav"></span><span id="ddn"></span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button><ul id="ddl" hidden></ul></div>
-    <div class="row end" style="margin-top:12px"><label>Type / key<select id="fvar"></select></label><label id="fnvl">Valves<select id="fnv"></select></label></div>
+    <div class="row end" style="margin-top:12px"><label>Type / key<select id="fvar"></select></label><label id="fnvl">Valves<select id="fnv"></select></label><label id="fstl">4th valve<select id="fstyle"><option value="0">Standard (use 4)</option><option value="1">Use 1+3 instead of 4</option></select></label></div>
     <p class="mut" id="fnote"></p>
     <p class="mut" id="fstat" role="status"></p>
     <div class="fctl" id="fctl"></div>
     <div class="read"><div id="rn" aria-live="polite"></div><div class="mut" id="rs"></div></div>
     <div class="row" style="justify-content:center;margin-top:10px"><button class="btn" id="breath" aria-pressed="false">Hold to play</button></div>
+    <div class="row" style="justify-content:center"><label class="chk"><input type="checkbox" id="fauto" checked>Auto register: picks the note closest to your last one, like a real player</label></div>
     <div class="reg"><button class="btn alt" id="rdn" aria-label="Lower register">−</button><span id="rg"></span><button class="btn alt" id="rup" aria-label="Higher register">+</button></div>
     <p class="mut" id="fhint" style="text-align:center"></p>
     <div class="fchart" id="fchart"></div>
+    <div class="box" id="scbox" style="margin-top:22px"><b>Play a scale</b>
+      <p class="mut">See the fingering for every note and hear it played. Alternate fingerings show side by side, like 4 / 1·3.</p>
+      <div class="row end" style="margin-top:12px"><label>Key (as you read it)<select id="skey"></select></label><label>Scale<select id="smode"></select></label></div>
+      <div class="fchart" id="sgrid"></div>
+      <button class="btn" id="splay" style="margin-top:14px">Play the scale</button>
+    </div>
   </div>
 </article>
 
@@ -93,8 +103,10 @@
       <label for="bpb" style="margin-top:12px">Beats per bar</label><select id="bpb"><option>2</option><option>3</option><option selected>4</option><option>6</option></select>
       <div class="row" style="margin-top:16px"><button class="btn" id="met" aria-pressed="false">Start</button><span id="beat" aria-hidden="true">–</span></div>
     </div>
-    <div class="box"><b>Tuning tones</b><p class="mut">Select a concert pitch to hold it, and select it again to stop.</p>
-      <div id="drone" class="row" style="margin-top:16px"><button class="btn" aria-pressed="false" data-f="466.16">B♭</button><button class="btn" aria-pressed="false" data-f="440">A</button><button class="btn" aria-pressed="false" data-f="349.23">F</button><button class="btn" aria-pressed="false" data-f="311.13">E♭</button></div>
+    <div class="box"><b>Tuning tones</b><p class="mut">Pick a sound, then select a concert pitch to hold it. Select it again to stop.</p>
+      <label for="tsnd" style="margin-top:12px">Sound<select id="tsnd"></select></label>
+      <p class="mut" id="tstat" role="status"></p>
+      <div id="drone" class="row" style="margin-top:10px"><button class="btn" aria-pressed="false" data-m="70">B♭</button><button class="btn" aria-pressed="false" data-m="69">A</button><button class="btn" aria-pressed="false" data-m="65">F</button><button class="btn" aria-pressed="false" data-m="63">E♭</button></div>
     </div>
   </div></div>
 </article>

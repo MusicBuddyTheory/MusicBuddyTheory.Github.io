@@ -77,7 +77,7 @@ $('#play').onclick=async()=>{const b=$('#play'),lab=b.textContent,x=I[+$('#inst'
   b.disabled=true;b.textContent='Loading '+x[0].replace(/ \(.*\)/,'').toLowerCase()+'…';
   await noteSeq(x[3],seq,.5,.42);b.disabled=false;b.textContent=lab};
 
-const KEYS=['a','s','d','f'];/* keyboard keys for valves 1 to 4. Q and W change register. B or Space blows air. Trombone uses 1 to 7. */
+const KEYS=['a','s','d','f'];/* keyboard keys for valves 1 to 4. Q and W jump register. B or Space blows air. Trombone uses 1 to 7. */
 const VS={1:2,2:1,3:3,4:5},F3={0:[],1:[2],2:[1],3:[1,2],4:[2,3],5:[1,3],6:[1,2,3]},F4={...F3,5:[4],6:[2,4],7:[1,4],8:[3,4],9:[2,3,4],10:[1,3,4],11:[1,2,3,4]};
 /* p = open-note partials in concert pitch for the first variant. s = how many half-steps a variant shifts them up.
    off = half-steps from the sounding note to the note you read (written = sounding + off). vals = valve counts you can choose. */
@@ -101,38 +101,65 @@ horn:{n:'French horn',ab:'Hn',sf:'french_horn',v:3,p:[41,48,53,57,60,65,69,72],v
 trombone:{n:'Trombone',ab:'Tb',sf:'trombone',v:0,p:[46,53,58,62,65,70,74],vars:[
  {l:'Tenor trombone (B♭)',s:0,off:0,t:'Concert pitch. Slide positions 1 to 7.'},
  {l:'Alto trombone (E♭)',s:5,off:0,t:'Concert pitch. Slide positions 1 to 7 on an E♭ alto.'}]}};
-let fk='trumpet',vi=0,nv=3,pi=1,pos=1,fview=false,pre=false,tkey='';
+const SM=[['Major',ST[0]],['Natural minor',ST[1]],['Chromatic',[0,1,2,3,4,5,6,7,8,9,10,11]]];
+let fk='trumpet',vi=0,nv=3,pi=0,pos=1,fview=false,pre=false,tkey='',auto=true,sty=0,ref=null,frc=null;
 const dn=new Set(),hd=new Set();let tdn=false,br=false,tap=false,tapT=0;
-/* dn = valves shown as pressed. hd = valves physically held right now. tdn = trombone position held. br = air button held. tap = chart tap. */
+/* dn = valves shown as pressed. hd = valves physically held right now. tdn = trombone position held. br = air button held. tap = chart tap.
+   ref = the last note that sounded. Auto register picks the note closest to it, the way a player's ear does. frc = a note forced by Q/W or a chart tap. */
 const cfg=()=>{const b=FI[fk],x=b.vars[vi]||b.vars[0];return {...b,...x,v:b.vals?nv:b.v,p:b.p.map(a=>a+x.s)}};
-const isT=()=>cfg().v==0,tbl=()=>cfg().v==4?F4:F3;
+const isT=()=>cfg().v==0;
+const dmax=f=>f.v==0||f.v==3?7:12;
+const gapOf=(f,i)=>Math.min(i?f.p[i]-f.p[i-1]:dmax(f),dmax(f));
 const depth=()=>isT()?pos-1:[...dn].reduce((a,v)=>a+VS[v],0);
 const nm=m=>fm(MAJ[((m%12)+12)%12]+(Math.floor(m/12)-1));
+const fmtC=(c,s='·')=>c.length?c.join(s):'open';
+/* every valve combination that lowers the pitch by d half-steps, standard one first. Example: 5 half-steps is 4, or 1 and 3. */
+function combos(d,f){const out=[],n=f.v,canon=(f.v==4?F4:F3)[d]||[];
+  for(let s=0;s<(1<<n);s++){const c=[];let t=0;for(let k=0;k<n;k++)if(s>>k&1){c.push(k+1);t+=VS[k+1]}if(t==d)out.push(c)}
+  const key=c=>String(c)==String(canon)?'0':'1'+c.length+c.join('');
+  return out.sort((a,b)=>key(a)<key(b)?-1:1)}
+function pickCombo(d,f){const l=combos(d,f);if(sty&&f.v==4){const w=l.find(c=>!c.includes(4));if(w)return w}return l[0]||[]}
+/* which register and how far down the valves or slide go to reach midi note m */
+function fingerFor(m,f){for(let i=0;i<f.p.length;i++){const d=f.p[i]-m;if(d>=0&&d<gapOf(f,i))return{i,d}}return null}
+/* the note you get: in auto mode, of the notes this fingering can reach, the one closest to the last note you played */
+function pitch(){const f=cfg(),d=depth();
+  if(!auto)return{m:f.p[pi]-d,i:pi};
+  if(frc&&frc.d==d)return{m:frc.m,i:frc.i};
+  let best=null;
+  f.p.forEach((q,i)=>{if(d>=gapOf(f,i))return;const m=q-d,dist=Math.abs(m-(ref==null?f.p[pi]:ref));
+    if(!best||dist<best.dist||(dist==best.dist&&m<best.m))best={m,i,dist}});
+  return best?{m:best.m,i:best.i}:{m:f.p[pi]-d,i:pi}}
 
 /* ----- held notes ----- */
 function synthHold(f){const c=cx(),t=c.currentTime,o=c.createOscillator(),l=c.createBiquadFilter(),g=c.createGain();
   o.type='sawtooth';o.frequency.value=f;l.type='lowpass';l.frequency.value=f*3;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.18,t+.05);
   o.connect(l);l.connect(g);g.connect(c.destination);o.start(t);
   return{stop(){const u=c.currentTime;g.gain.cancelScheduledValues(u);g.gain.setValueAtTime(g.gain.value,u);g.gain.linearRampToValueAtTime(0,u+.1);o.stop(u+.12)}}}
-/* Recorded notes are finite, so a held note re-triggers a fresh copy every 1.9 seconds and crossfades it in under the old one. */
-function holdStart(p,m){const c=cx(),h={on:true,nodes:[],tm:0,syn:null};
+/* Recorded notes are finite, so a held note re-triggers a fresh copy every 1.9 seconds and crossfades it in under the old one.
+   Struck sounds (piano) just get struck again every 2.2 seconds. */
+function holdStart(p,m,o={}){const c=cx(),h={on:true,nodes:[],tm:0,syn:null};
   const fire=first=>{if(!h.on)return;
-    h.nodes.push(p.play(m,c.currentTime,{duration:2,gain:1.6,adsr:first?[.04,.1,.9,.5]:[.6,.1,.9,.5]}));
+    h.nodes.push(p.play(m,c.currentTime,o.perc?{duration:2.6,gain:1.5,adsr:[.005,.3,.6,.7]}:{duration:2,gain:1.6,adsr:first?[.04,.1,.9,.5]:[.6,.1,.9,.5]}));
     if(h.nodes.length>3)h.nodes.shift();
-    h.tm=setTimeout(()=>fire(false),1900)};
+    h.tm=setTimeout(()=>fire(false),o.perc?2200:1900)};
   if(p)fire(true);else h.syn=synthHold(hz(m));
-  h.stop=()=>{h.on=false;clearTimeout(h.tm);const t=c.currentTime;h.nodes.forEach(n=>{try{n.stop(t+.12)}catch(e){}});if(h.syn)h.syn.stop()};
+  h.stop=()=>{h.on=false;clearTimeout(h.tm);const t=c.currentTime;h.nodes.forEach(n=>{try{n.stop(t+(o.perc?.4:.12))}catch(e){}});if(h.syn)h.syn.stop()};
   return h}
-let voice=null,vk=null,vtok=0;
+let voice=null,vk=null,vtok=0,stimer=0;
 const active=()=>isT()?(tdn||br||tap):(hd.size>0||br||tap);
-function sound(){const f=cfg(),want=active()?f.p[pi]-depth():null,key=want==null?null:f.sf+':'+want;
-  if(key===vk)return;
-  vk=key;const tok=++vtok;
+function stopVoice(){if(voice){voice.stop();voice=null}vk=null;vtok++}
+/* Valve and key changes within 35 ms count as one fingering, so rolling a chord like 1+3 does not play a wrong note first. */
+function sound(){const w=active()?pitch():null;
+  if(!w){clearTimeout(stimer);stimer=0;if(vk!==null||voice)stopVoice();return}
+  if(cfg().sf+':'+w.m===vk&&!stimer)return;
+  clearTimeout(stimer);stimer=setTimeout(()=>{stimer=0;commit()},35)}
+function commit(){const w=active()?pitch():null;if(!w){stopVoice();return}
+  const f=cfg(),key=f.sf+':'+w.m;if(key===vk)return;
   if(voice){voice.stop();voice=null}
-  if(want==null)return;
-  if(SF[f.sf]){voice=holdStart(SF[f.sf],want);return}
+  vk=key;ref=w.m;const tok=++vtok;
+  if(SF[f.sf]){voice=holdStart(SF[f.sf],w.m);return}
   stat('Loading '+f.n.split(' ')[0].toLowerCase()+' sound…');
-  loadSF(f.sf).then(p=>{if(tok!==vtok)return;stat();voice=holdStart(p,want)})}
+  loadSF(f.sf).then(p=>{if(tok!==vtok)return;stat();voice=holdStart(p,w.m)})}
 function stat(t){$('#fstat').textContent=t||(SF[cfg().sf]?'Sound ready':'')}
 function preload(){if(!pre)return;const f=cfg();if(SF[f.sf]){stat();return}
   stat('Loading '+f.n.split(' ')[0].toLowerCase()+' sound…');
@@ -145,48 +172,86 @@ function fRender(){const f=cfg(),b=FI[fk];$('#ddav').textContent=f.ab;$('#ddn').
   $('#fvar').innerHTML=b.vars.map((x,i)=>`<option value="${i}"${i==vi?' selected':''}>${x.l}</option>`).join('');
   $('#fnvl').style.display=b.vals?'':'none';
   if(b.vals)$('#fnv').innerHTML=b.vals.map(n=>`<option value="${n}"${n==nv?' selected':''}>${n} valves</option>`).join('');
+  $('#fstl').style.display=f.v==4?'':'none';$('#fstyle').value=sty;
   $('#fctl').innerHTML=isT()?[1,2,3,4,5,6,7].map(n=>`<button class="vb pos" data-pos="${n}" aria-pressed="false" aria-label="Position ${n}">${n}</button>`).join(''):Array.from({length:f.v},(_,i)=>`<button class="vb" data-v="${i+1}" aria-pressed="false" aria-label="Valve ${i+1}"><b>${i+1}</b><small>${KEYS[i].toUpperCase()}</small></button>`).join('');
-  $('#fhint').textContent=isT()?'Hold a position (tap and hold, or hold keys 1 to 7) and the note keeps sounding. Q and W change register. Hold B or Space to blow on the current position.':`Hold the valves (tap and hold, or hold ${KEYS.slice(0,f.v).join(' ').toUpperCase()}) and the note keeps sounding. Q and W change register. For the open note, hold the button below, or hold B or Space.`;
-  fUpd();preload()}
-function fUpd(){const f=cfg(),d=depth(),m=f.p[pi]-d,dm=isT()||f.v==3?7:12,gap=Math.min(pi?f.p[pi]-f.p[pi-1]:dm,dm);
+  $('#fhint').textContent=isT()?'Hold a position (tap and hold, or hold keys 1 to 7) and the note keeps sounding. To play a scale, change positions: Auto register picks the closest note, like a real player. Q and W jump up or down a register. Hold B or Space to blow on the current position.':`Hold the valves (tap and hold, or hold ${KEYS.slice(0,f.v).join(' ').toUpperCase()}) and the note keeps sounding. To play a scale, change fingerings: Auto register picks the closest note, like a real player, and you can press valves together like 1+3. Q and W jump up or down a register. For the open note, hold the button, or hold B or Space.`;
+  ref=f.p[pi];frc=null;
+  fUpd();scGrid();preload()}
+function fUpd(){const f=cfg(),d=depth(),t=pitch(),m=t.m;if(auto)pi=t.i;
+  const gap=gapOf(f,pi),cur=[...dn].sort(),alts=(!isT()&&d>0)?combos(d,f).filter(c=>String(c)!=String(cur)).map(c=>fmtC(c,'+')):[];
   $$('#fctl .vb').forEach(b=>{const on=isT()?+b.dataset.pos==pos:dn.has(+b.dataset.v);b.classList.toggle('down',on);b.setAttribute('aria-pressed',on)});
   $('#rn').textContent=nm(m+f.off);
-  $('#rs').textContent=(f.off?'Sounds '+nm(m)+' · ':'')+'Fingering: '+(isT()?'position '+pos:dn.size?[...dn].sort().join(' + '):'open');
-  $('#fchart').innerHTML=Array.from({length:gap},(_,k)=>`<button class="fc${k==d?' on':''}" data-d="${k}"><b>${nm(f.p[pi]-k+f.off)}</b><small>${isT()?'pos '+(k+1):(tbl()[k]||[]).join('·')||'open'}</small></button>`).join('');
+  $('#rs').textContent=(f.off?'Sounds '+nm(m)+' · ':'')+'Fingering: '+(isT()?'position '+pos:cur.length?cur.join(' + '):'open')+(alts.length?' · also '+alts.join(', '):'');
+  $('#fchart').innerHTML=Array.from({length:gap},(_,k)=>`<button class="fc${k==d?' on':''}" data-d="${k}"><b>${nm(f.p[pi]-k+f.off)}</b><small>${isT()?'pos '+(k+1):combos(k,f).map(c=>fmtC(c)).join(' / ')}</small></button>`).join('');
   $('#rg').textContent=`Register ${pi+1} of ${f.p.length}`;
   $('#breath').setAttribute('aria-pressed',br);
   sound()}
-function reg(x){pi=Math.max(0,Math.min(cfg().p.length-1,pi+x));fUpd()}
+function reg(x){const f=cfg(),d=depth();
+  if(auto){const cur=pitch().m,l=f.p.map((q,i)=>({m:q-d,i})).sort((a,b)=>a.m-b.m),n=x>0?l.find(o=>o.m>cur):[...l].reverse().find(o=>o.m<cur);
+    if(n){frc={m:n.m,i:n.i,d};ref=n.m}}
+  else pi=Math.max(0,Math.min(f.p.length-1,pi+x));
+  fUpd()}
+
+/* ----- scales ----- */
+function seqFor(f){const r=+$('#skey').value,st=SM[+$('#smode').value][1],tc=(((r-f.off)%12)+12)%12;
+  let t=f.p[0];while(((t%12)+12)%12!=tc)t++;
+  if(t+12>f.p[f.p.length-1]&&t-12>=f.p[0]-6)t-=12;
+  return [...st.map(s=>t+s),t+12].map((m,k)=>({m,k}))}
+function scGrid(){const f=cfg();
+  $('#sgrid').innerHTML=seqFor(f).map(n=>{const x=fingerFor(n.m,f);return `<div class="fc" data-k="${n.k}"><b>${nm(n.m+f.off)}</b><small>${x?(isT()?'pos '+(x.d+1):combos(x.d,f).map(c=>fmtC(c)).join(' / ')):'out of range'}</small></div>`}).join('')}
+let scTok=0,scNode=null;
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+function scEnd(){const b=$('#splay');delete b.dataset.on;b.textContent='Play the scale';frc=null;dn.clear();hd.clear();$$('#sgrid .fc').forEach(e=>e.classList.remove('on'));fUpd()}
+async function playScale(){const b=$('#splay');
+  if(b.dataset.on){scTok++;if(scNode){try{scNode.stop()}catch(e){}}scEnd();return}
+  const f=cfg(),up=seqFor(f),seq=[...up,...up.slice(0,-1).reverse()],tok=++scTok;
+  b.dataset.on=1;b.textContent='Stop';allUp();stat('Loading sound…');
+  const p=await loadSF(f.sf);stat();const c=cx();
+  for(const n of seq){if(tok!==scTok)break;const x=fingerFor(n.m,f);if(!x)continue;
+    dn.clear();hd.clear();if(isT())pos=x.d+1;else pickCombo(x.d,f).forEach(v=>dn.add(v));
+    ref=n.m;frc={m:n.m,i:x.i,d:x.d};pi=x.i;fUpd();
+    $$('#sgrid .fc').forEach(e=>e.classList.toggle('on',+e.dataset.k==n.k));
+    if(p)scNode=p.play(n.m,c.currentTime,{duration:.5,gain:1.6,adsr:[.03,.1,.85,.2]});else synth(hz(n.m),c.currentTime,.5);
+    await sleep(540)}
+  if(tok===scTok)scEnd()}
 
 /* ----- controls ----- */
+$('#skey').innerHTML=MAJ.map((n,i)=>`<option value="${i}"${i==10?' selected':''}>${fm(n)}</option>`).join('');
+$('#smode').innerHTML=SM.map((x,i)=>`<option value="${i}">${x[0]}</option>`).join('');
+$('#skey').onchange=$('#smode').onchange=e=>{scGrid();e.target.blur()};
+$('#splay').onclick=()=>{cx();playScale()};
 $('#ddl').innerHTML=Object.entries(FI).map(([k,f])=>`<li><button data-k="${k}"><span class="av sm">${f.ab}</span>${f.n}</button></li>`).join('');
 const dd=o=>{$('#ddl').hidden=!o;$('#ddb').setAttribute('aria-expanded',o)};
 $('#ddb').onclick=()=>dd($('#ddl').hidden);
-$('#ddl').onclick=e=>{const b=e.target.closest('button');if(!b)return;allUp();fk=b.dataset.k;vi=0;nv=FI[fk].vals?FI[fk].vals[0]:FI[fk].v;pi=1;pos=1;dd(false);fRender();$('#ddb').focus()};
-$('#fvar').onchange=()=>{allUp();vi=+$('#fvar').value;fRender()};
-$('#fnv').onchange=()=>{allUp();nv=+$('#fnv').value;fRender()};
+$('#ddl').onclick=e=>{const b=e.target.closest('button');if(!b)return;allUp();fk=b.dataset.k;vi=0;nv=FI[fk].vals?FI[fk].vals[0]:FI[fk].v;pi=0;pos=1;dd(false);fRender();$('#ddb').focus()};
+$('#fvar').onchange=e=>{allUp();vi=+$('#fvar').value;fRender();e.target.blur()};
+$('#fnv').onchange=e=>{allUp();nv=+$('#fnv').value;fRender();e.target.blur()};
+$('#fstyle').onchange=e=>{sty=+$('#fstyle').value;scGrid();e.target.blur()};
+$('#fauto').onchange=e=>{auto=e.target.checked;frc=null;fUpd();e.target.blur()};
 document.addEventListener('click',e=>{if(!e.target.closest('.dd'))dd(false)});
 const fc=$('#fctl');
-fc.onpointerdown=e=>{const b=e.target.closest('.vb');if(!b)return;e.preventDefault();if(b.setPointerCapture)b.setPointerCapture(e.pointerId);
+fc.onpointerdown=e=>{const b=e.target.closest('.vb');if(!b)return;cx();e.preventDefault();if(b.setPointerCapture)b.setPointerCapture(e.pointerId);
   if(b.dataset.pos){pos=+b.dataset.pos;tdn=true}else{if(!hd.size)dn.clear();hd.add(+b.dataset.v);dn.add(+b.dataset.v)}fUpd()};
 fc.onpointerup=fc.onpointercancel=e=>{const b=e.target.closest('.vb');if(!b)return;
   if(b.dataset.v){hd.delete(+b.dataset.v);dn.delete(+b.dataset.v)}else tdn=false;fUpd()};
-fc.onclick=e=>{if(e.detail)return;const b=e.target.closest('.vb');if(!b)return;/* keyboard activation (Enter or Space on a focused button) */
+fc.onclick=e=>{if(e.detail)return;const b=e.target.closest('.vb');if(!b)return;cx();/* keyboard activation (Enter or Space on a focused button) */
   if(b.dataset.pos){pos=+b.dataset.pos;tdn=true;fUpd();setTimeout(()=>{tdn=false;fUpd()},900)}
   else{const v=+b.dataset.v;if(hd.has(v)){hd.delete(v);dn.delete(v)}else{hd.add(v);dn.add(v)}fUpd()}};
-$('#fchart').onclick=e=>{const b=e.target.closest('.fc');if(!b)return;const k=+b.dataset.d;
-  if(isT())pos=k+1;else{dn.clear();hd.clear();(tbl()[k]||[]).forEach(v=>dn.add(v))}
+$('#fchart').onclick=e=>{const b=e.target.closest('.fc');if(!b)return;cx();const k=+b.dataset.d,f=cfg(),m=f.p[pi]-k;
+  dn.clear();hd.clear();if(isT())pos=k+1;else pickCombo(k,f).forEach(v=>dn.add(v));
+  ref=m;frc={m,i:pi,d:k};
   tap=true;clearTimeout(tapT);tapT=setTimeout(()=>{tap=false;fUpd()},1200);fUpd()};
 const bt=$('#breath');
-bt.onpointerdown=e=>{e.preventDefault();if(bt.setPointerCapture)bt.setPointerCapture(e.pointerId);br=true;fUpd()};
+bt.onpointerdown=e=>{cx();e.preventDefault();if(bt.setPointerCapture)bt.setPointerCapture(e.pointerId);br=true;fUpd()};
 bt.onpointerup=bt.onpointercancel=()=>{br=false;fUpd()};
-bt.onclick=e=>{if(e.detail)return;br=true;fUpd();setTimeout(()=>{br=false;fUpd()},900)};
+bt.onclick=e=>{if(e.detail)return;cx();br=true;fUpd();setTimeout(()=>{br=false;fUpd()},900)};
 $('#rdn').onclick=()=>reg(-1);$('#rup').onclick=()=>reg(1);
 new IntersectionObserver(([x])=>{fview=x.isIntersecting;if(fview&&!pre){pre=true;preload()}if(!fview)allUp()},{threshold:.25}).observe($('#fingerings'));
 window.addEventListener('blur',allUp);
 document.addEventListener('visibilitychange',()=>{if(document.hidden)allUp()});
-const typing=e=>/INPUT|SELECT|TEXTAREA/.test(e.target.tagName);
+const typing=e=>{const t=e.target;return t.isContentEditable||/TEXTAREA|SELECT/.test(t.tagName)||(t.tagName=='INPUT'&&/text|search|email|number/.test(t.type||'text'))};
 document.addEventListener('keydown',e=>{if(e.key=='Escape')dd(false);if(!fview||e.repeat||typing(e)||e.ctrlKey||e.metaKey||e.altKey)return;const k=e.key.toLowerCase(),i=KEYS.indexOf(k),f=cfg();
+  if(i>=0||k=='b'||k==' '||k=='q'||k=='w'||/^[1-7]$/.test(k))cx();
   if(i>=0&&!isT()&&i<f.v){if(!hd.size)dn.clear();hd.add(i+1);dn.add(i+1);fUpd()}
   else if(isT()&&/^[1-7]$/.test(k)){pos=+k;tdn=true;tkey=k;fUpd()}
   else if(k=='q')reg(-1);else if(k=='w')reg(1);
@@ -203,9 +268,9 @@ function wheel(){const M='C G D A E B F♯ D♭ A♭ E♭ B♭ F'.split(' '),m='
     return `<text ${p(76,4)} font-size="13" font-weight="700" fill="currentColor">${k}</text><text ${p(50,3)} font-size="9" style="fill:var(--mut)">${m[i]}</text><text ${p(97,3)} font-size="8" font-weight="700" style="fill:var(--ct)">${a[i]}</text>`}).join('')+'</svg>'}
 const kb='<svg viewBox="0 0 175 70" width="200" class="mx" role="img" aria-label="Piano keys C to B">'+[0,1,2,3,4,5,6].map(i=>`<rect x="${i*25}" y="0" width="25" height="70" fill="#fff" stroke="#3b3226"/><text x="${i*25+12}" y="64" text-anchor="middle" font-size="9" fill="#3b3226">${'CDEFGAB'[i]}</text>`).join('')+[1,2,4,5,6].map(i=>`<rect x="${i*25-7}" y="0" width="14" height="40" fill="#2b2218"/>`).join('')+'</svg>';
 const CARDS=[
-['Circle of Fifths','Key signatures','#F5C542',wheel()+'<p>Clockwise adds a sharp, counter-clockwise adds a flat. The small letters inside are relative minors, and they share the same key signature.</p>'],
-['Interval math','By the numbers','#FFE27A','<p>Count half-steps. m2=1, M2=2, m3=3, M3=4, P4=5, tritone=6, P5=7, m6=8, M6=9, m7=10, M7=11, octave=12.</p><p>Major scale pattern: <b>W W H W W W H</b>. Minor third + major third stacks to a perfect fifth (3+4=7).</p>'],
-['Color & mood','By feel','#E8761E','<p><b>C</b> plain and honest, <b>G</b> sunny, <b>D</b> bright and triumphant, <b>F</b> pastoral and calm, <b>B♭</b> warm and round, <b>E♭</b> heroic, <b>A minor</b> lonely, <b>D minor</b> serious and stormy.</p><p>Try it: play a scale, then write down the color you hear.</p>'],
+['Circle of Fifths','Key signatures','#2b5fd9',wheel()+'<p>Clockwise adds a sharp, counter-clockwise adds a flat. The small letters inside are relative minors, and they share the same key signature.</p>'],
+['Interval math','By the numbers','#7aa5ff','<p>Count half-steps. m2=1, M2=2, m3=3, M3=4, P4=5, tritone=6, P5=7, m6=8, M6=9, m7=10, M7=11, octave=12.</p><p>Major scale pattern: <b>W W H W W W H</b>. Minor third + major third stacks to a perfect fifth (3+4=7).</p>'],
+['Color & mood','By feel','#1d4ed8','<p><b>C</b> plain and honest, <b>G</b> sunny, <b>D</b> bright and triumphant, <b>F</b> pastoral and calm, <b>B♭</b> warm and round, <b>E♭</b> heroic, <b>A minor</b> lonely, <b>D minor</b> serious and stormy.</p><p>Try it: play a scale, then write down the color you hear.</p>'],
 ['Keyboard map','By sight','#9A9A9A',kb+'<p>Black keys come in groups of 2 and 3. C is the white key just left of the two-black-key group. Every neighboring key is one half-step.</p>']];
 $('#cards').innerHTML=CARDS.map(c=>`<button class="flip" aria-pressed="false" style="--c:${c[2]}"><div class="in"><div class="face front"><h4 class="hand">${c[0]}</h4><p>${c[1]}</p><p class="mut" style="margin-top:40px">Tap to flip</p></div><div class="face back">${c[3]}</div></div></button>`).join('');
 $('#cards').onclick=e=>{const c=e.target.closest('.flip');if(c)c.setAttribute('aria-pressed',c.getAttribute('aria-pressed')!='true')};
@@ -250,15 +315,26 @@ $('#quiz').onclick=e=>{const b=e.target.closest('button');if(!b)return;
 qstart();qf=true;
 
 /* ---------- Metronome & tuning tones ---------- */
-let mt=0,dr;
+let mt=0;
 $('#bpm').oninput=()=>$('#bpmv').textContent=$('#bpm').value;
 $('#met').onclick=e=>{const b=e.currentTarget;
   if(mt){clearInterval(mt);mt=0;b.textContent='Start';b.setAttribute('aria-pressed','false');$('#beat').textContent='–';return}
   const c=cx();let nx=c.currentTime+.05,n=0;b.textContent='Stop';b.setAttribute('aria-pressed','true');
   mt=setInterval(()=>{while(nx<c.currentTime+.15){const k=n%+$('#bpb').value;tone(k?800:1200,nx,.06,.35,'square');setTimeout(()=>{if(mt)$('#beat').textContent=k+1},Math.max(0,(nx-c.currentTime)*1000));nx+=60/+$('#bpm').value;n++}},25)};
+/* Tuning tones: pick a sound, then hold a concert pitch. Each sound has an octave shift so a tuba is not squeaking up at B♭4. */
+const DS=[['Piano','acoustic_grand_piano',0,1],['Trumpet','trumpet',0,0],['Trombone','trombone',-12,0],['Tuba','tuba',-24,0],['French horn','french_horn',-12,0],['Clarinet','clarinet',0,0],['Flute','flute',0,0],['Alto sax','alto_sax',0,0],['Violin','violin',0,0],['Plain tone (sine)','',0,0]];
+$('#tsnd').innerHTML=DS.map((d,i)=>`<option value="${i}">${d[0]}</option>`).join('');
+let dr=null,dtok=0;
+function dStop(){dtok++;if(dr){dr.stop();dr=null}}
+async function dStart(){cx();const b=$('#drone button[aria-pressed=true]');if(!b)return;
+  const d=DS[+$('#tsnd').value],m=+b.dataset.m+d[2],tok=++dtok;
+  if(!d[1]){const c=cx(),o=c.createOscillator(),g=c.createGain();o.frequency.value=hz(m);g.gain.value=.15;o.connect(g);g.connect(c.destination);o.start();dr={stop(){o.stop()}};return}
+  if(!SF[d[1]]){$('#tstat').textContent='Loading '+d[0].toLowerCase()+' sound…';await loadSF(d[1]);if(tok!==dtok)return;$('#tstat').textContent=''}
+  dr=holdStart(SF[d[1]]||null,m,{perc:!!d[3]})}
 $('#drone').onclick=e=>{const b=e.target.closest('button');if(!b)return;const was=b.getAttribute('aria-pressed')=='true';
-  if(dr){dr.stop();dr=null}$$('#drone button').forEach(x=>x.setAttribute('aria-pressed','false'));if(was)return;
-  const c=cx(),o=c.createOscillator(),g=c.createGain();o.frequency.value=+b.dataset.f;g.gain.value=.15;o.connect(g);g.connect(c.destination);o.start();dr=o;b.setAttribute('aria-pressed','true')};
+  dStop();$$('#drone button').forEach(x=>x.setAttribute('aria-pressed','false'));if(was)return;
+  b.setAttribute('aria-pressed','true');dStart()};
+$('#tsnd').onchange=e=>{const had=$('#drone button[aria-pressed=true]');dStop();if(had)dStart();else{const d=DS[+$('#tsnd').value];if(d[1]){cx();loadSF(d[1])}}e.target.blur()};
 
 /* ---------- Maestro Mel ---------- */
 const A=[[/cold|temperature|winter/,'Cold air makes an instrument go flat. Warm it with your breath and play a few easy notes before you tune, or you will end up sharp once it warms up.'],

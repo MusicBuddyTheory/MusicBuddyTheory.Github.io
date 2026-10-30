@@ -1,4 +1,4 @@
-# Music Buddy
+# Music Buddy Theory
 
 A band room survival kit for high school music students. Instrument setup guides, a transposition explorer, flashcards, a pop quiz, and practice tools, all in plain HTML, CSS and JavaScript. No build step, no frameworks, no accounts.
 
@@ -8,7 +8,7 @@ Live site: https://musicbuddytheory.github.io/
 
 - **Instrument guides** for flute, clarinet, saxophone, trumpet, trombone, French horn, baritone/tuba, percussion and strings. Each has four steps: assembly, posture, hand position, and breath and tone.
 - **Scales and transposition explorer.** Pick a concert key (major or natural minor) and your instrument, see the scale you actually read, and hear the scale played with a real recording of the instrument (trumpet, clarinet, flute, sax, trombone, horn, tuba, strings and more).
-- **Playable fingering charts** for trumpet, euphonium/baritone, tuba, French horn and trombone. Pick the instrument from the dropdown, then hold the on-screen valves with your fingers (or the keys A S D F on a keyboard, Q and W to change register). Trombone uses slide positions 1 to 7. Every combination plays a real instrument sound.
+- **Playable fingering charts** for trumpet, euphonium/baritone, tuba, French horn and trombone. Pick the instrument from the dropdown, then hold the on-screen valves with your fingers (or the keys A S D F on a keyboard, Q and W to change register). Trombone uses slide positions 1 to 7. The note keeps sounding for as long as you hold the valves or slide position, and every combination plays a real instrument recording. A "Hold to play" button (or B or Space) blows the open note. Each instrument has a Type / key menu (B♭, C, D and E♭ trumpet; BB♭, CC, E♭ and F tuba; F or B♭ side on the horn; tenor or alto trombone; bass or treble clef euphonium) and tubas and euphoniums can switch between 3 and 4 valves.
 - **Flashcards** for the circle of fifths, interval math, key color and mood, and a keyboard map.
 - **Pop quiz.** Ten new questions every round (key signatures, transposition, relative minors, intervals, music vocabulary). Your best score is saved in your browser only.
 - **Practice tools.** A metronome and held tuning tones (concert B-flat, A, F and E-flat).
@@ -18,10 +18,11 @@ Live site: https://musicbuddytheory.github.io/
 
 ```
 index.html   page structure and content
-styles.css   all styling (black and yellow theme)
+styles.css   all styling (dark blue and gold theme)
 app.js       guides, scale engine, quiz, metronome, Mel chat
 worker.js    optional backend that gives Mel real AI answers (deployed separately)
 knowledge.json  extra answers for Mel that you can edit any time
+logo.svg, logo-mark.svg, favicon.svg   the logo files
 ```
 
 ## Put it on GitHub Pages
@@ -38,13 +39,16 @@ knowledge.json  extra answers for Mel that you can edit any time
 - **Quiz questions:** the `S` list (fixed questions) and the `GEN` list (generated questions) in `app.js`.
 - **Mel's built-in answers:** the `A` list in `app.js`. Each entry is a pattern and a reply.
 - **Mel's personality (AI mode):** the `SYSTEM` text at the top of `worker.js`.
-- **Colors and fonts:** the variables at the top of `styles.css`.
+- **Colors:** the variables at the top of `styles.css` (`--bg`, `--card`, `--tint` and `--line` are the blues, `--accent` is the gold).
+- **Fingering chart instruments and keys:** the `FI` object in `app.js`. Each instrument has a list of `vars` (its keys or types), with a half-step shift `s` and a reading offset `off`.
+- **Logo:** `logo-mark.svg` and `favicon.svg`. Mel is only the chat mascot and is not part of the logo.
+- **Logo wordmark font:** the `--logo-font` line near the bottom of `styles.css`.
 
 ## Notes
 
 - Sounds use the browser's Web Audio API, so the first tap on a sound button may be needed before audio plays on phones.
-- Instrument sounds are real recordings from the FluidR3 GM soundfont (Creative Commons Attribution 3.0, via midi-js-soundfonts), loaded on demand with the soundfont-player library (MIT). They need an internet connection; offline, the site falls back to a simple synthesized tone. The first play of each instrument takes a moment to download.
-- The site uses a dark, black and yellow theme and your device's standard system fonts.
+- Instrument sounds are real recordings from the MusyngKite soundfont (Creative Commons Attribution Share-Alike 3.0, via midi-js-soundfonts), with the FluidR3 GM soundfont (Creative Commons Attribution 3.0) as a backup if it cannot load, loaded on demand with the soundfont-player library (MIT). They need an internet connection; offline, the site falls back to a simple synthesized tone. The first play of each instrument takes a moment to download.
+- The site uses a dark blue and gold theme and your device's standard system fonts.
 
 ## Make Mel a real AI chatbot
 

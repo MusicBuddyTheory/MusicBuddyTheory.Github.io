@@ -1,4 +1,4 @@
-:root{color-scheme:dark;--bg:#000;--card:#121212;--tint:#1c1c1c;--ink:#f5f5f5;--mut:#a8a8a8;--line:#2a2a2a;--accent:#f5c542;--accent-ink:#111;--ct:#f5c542;--ring:linear-gradient(45deg,#ffe27a,#f5b82e 55%,#e8761e);--good:#12301f;--goodb:#3dbe74;--bad:#3a1814;--badb:#f0705f;--c:#f5c542;--mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace}
+:root{color-scheme:dark;--bg:#0a1f44;--card:#102a5a;--tint:#183868;--ink:#f3f7ff;--mut:#a9bcdf;--line:#2a4a85;--accent:#f5c542;--accent-ink:#0a1530;--ct:#f5c542;--ring:linear-gradient(45deg,#ffe27a,#f5b82e 55%,#e8761e);--good:#0f3b32;--goodb:#3dbe74;--bad:#4a1f2e;--badb:#f0705f;--c:#f5c542;--mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace}
 *{box-sizing:border-box}
 html{scroll-behavior:smooth;scroll-padding-top:64px}
 body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;padding-bottom:calc(64px + env(safe-area-inset-bottom))}
@@ -53,7 +53,7 @@ a.btn{text-decoration:none;display:inline-block}
 #sigc,#sigw{font-family:var(--mono);font-size:12px}
 .dd{position:relative;display:inline-block;margin-top:8px}
 .ddb{display:flex;align-items:center;gap:10px;padding:5px 12px 5px 5px;border:1px solid var(--line);border-radius:999px;background:var(--card);font-weight:600}
-#ddl{position:absolute;left:0;top:calc(100% + 6px);z-index:5;min-width:250px;margin:0;padding:6px;list-style:none;background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:0 12px 32px #000}
+#ddl{position:absolute;left:0;top:calc(100% + 6px);z-index:5;min-width:250px;margin:0;padding:6px;list-style:none;background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:0 12px 32px #020a1f}
 #ddl[hidden]{display:none}
 #ddl button{display:flex;align-items:center;gap:10px;width:100%;padding:8px 10px;border:0;border-radius:8px;background:none;text-align:left}#ddl button:hover{background:var(--tint)}
 .fctl{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin:22px 0 10px}
@@ -79,9 +79,9 @@ a.btn{text-decoration:none;display:inline-block}
 .opt:hover:not(:disabled){border-color:var(--accent)}.opt:disabled{color:var(--ink);cursor:default}
 .opt.good{background:var(--good);border-color:var(--goodb)}.opt.bad{background:var(--bad);border-color:var(--badb)}
 .opt.good::after{content:" ✓"}.opt.bad::after{content:" ✗"}
-.mel{position:fixed;right:16px;bottom:calc(76px + env(safe-area-inset-bottom));z-index:20;width:62px;height:62px;border-radius:50%;background:var(--card);border:1px solid var(--line);box-shadow:0 4px 18px #000a;display:grid;place-items:center;transition:transform .2s}
+.mel{position:fixed;right:16px;bottom:calc(76px + env(safe-area-inset-bottom));z-index:20;width:62px;height:62px;border-radius:50%;background:var(--card);border:1px solid var(--line);box-shadow:0 4px 18px #020a1faa;display:grid;place-items:center;transition:transform .2s}
 .mel:hover{transform:scale(1.07) rotate(-4deg)}
-.drawer{position:fixed;right:16px;bottom:150px;z-index:20;width:min(380px,calc(100vw - 32px));height:min(520px,66vh);display:flex;flex-direction:column;background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:0 12px 40px #000}
+.drawer{position:fixed;right:16px;bottom:150px;z-index:20;width:min(380px,calc(100vw - 32px));height:min(520px,66vh);display:flex;flex-direction:column;background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:0 12px 40px #020a1f}
 .drawer[hidden]{display:none}
 .drawer header{display:flex;justify-content:space-between;align-items:center;padding:10px 16px;border-bottom:1px solid var(--line)}
 .drawer header b{display:flex;align-items:center;gap:8px;font-size:16px}.drawer header button{border:0;background:none;font-size:26px;line-height:1;color:var(--mut)}
@@ -96,3 +96,14 @@ a.btn{text-decoration:none;display:inline-block}
 @keyframes fade{from{opacity:0;transform:translateY(6px)}}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+/* Logo. For a serif wordmark, set --logo-font to "Times New Roman",Times,serif */
+:root{--logo-font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+.lm{display:block;flex:none}.av img{display:block}
+.wm{display:flex;flex-direction:column;font-family:var(--logo-font);line-height:1}
+.wm b{font-size:15px;font-weight:800;letter-spacing:.06em}
+.wm i{font-style:normal;font-size:9px;font-weight:700;letter-spacing:.42em;margin-top:5px;color:#35c2a5}
+
+[hidden]{display:none!important}
+.ph .av svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+#breath{min-width:180px;padding:12px 22px;touch-action:none;user-select:none;-webkit-user-select:none}
+#fstat{min-height:1.3em}

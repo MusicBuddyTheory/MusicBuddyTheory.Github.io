@@ -8,7 +8,7 @@ Live site: https://problemsolver77.github.io/
 
 - **Instrument guides** for flute, clarinet, saxophone, trumpet, trombone, French horn, baritone/tuba, percussion and strings. Each has four steps: assembly, posture, hand position, and breath and tone.
 - **Scales and transposition explorer.** Pick a concert key (major or natural minor) and your instrument, see the scale you actually read, and hear the scale played with a real recording of the instrument (trumpet, clarinet, flute, sax, trombone, horn, tuba, strings and more). Tap a note on the valve chart to hear it on trumpet.
-- **Trumpet valve cheat sheet** for written notes C4 to B4.
+- **Playable fingering charts** for trumpet, euphonium/baritone, tuba, French horn and trombone. Pick the instrument from the dropdown, then hold the on-screen valves with your fingers (or the keys A S D F on a keyboard, Q and W to change register). Trombone uses slide positions 1 to 7. Every combination plays a real instrument sound.
 - **Flashcards** for the circle of fifths, interval math, key color and mood, and a keyboard map.
 - **Pop quiz.** Ten new questions every round (key signatures, transposition, relative minors, intervals, music vocabulary). Your best score is saved in your browser only.
 - **Practice tools.** A metronome and held tuning tones (concert B-flat, A, F and E-flat).
@@ -21,6 +21,7 @@ index.html   page structure and content
 styles.css   all styling (light and dark mode)
 app.js       guides, scale engine, quiz, metronome, Mel chat
 worker.js    optional backend that gives Mel real AI answers (deployed separately)
+knowledge.json  extra answers for Mel that you can edit any time
 ```
 
 ## Put it on GitHub Pages
@@ -56,3 +57,11 @@ GitHub Pages only serves static files, and an API key put in `app.js` would be p
 4. Copy the Worker's URL and paste it between the quotes in `const MEL_API=''` at the top of `app.js`. Commit.
 
 If the Worker is unreachable, Mel falls back to the built-in answers and the teach-me notebook. Mel keeps the conversation in memory while the page is open, but does not remember anything after a refresh, and the AI does not learn from chats. Things you teach Mel are saved in that browser only.
+
+## Teach Mel new answers instantly
+
+Open `knowledge.json` on GitHub, add an entry like `{ "q": "What does rubato mean", "a": "Rubato means flexible tempo." }`, and commit. Mel uses it as soon as the site updates (about a minute), even without the AI connected. If you also set the Worker variable `KNOWLEDGE_URL` to `https://problemsolver77.github.io/knowledge.json`, the AI reads those answers too and prefers them over its own.
+
+## Keyboard keys for the fingering chart
+
+The keys are set by the `KEYS` list at the top of the fingering section in `app.js` (default `a`, `s`, `d`, `f` for valves 1 to 4).

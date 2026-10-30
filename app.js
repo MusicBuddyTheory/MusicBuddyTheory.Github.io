@@ -61,11 +61,13 @@ function tone(f,t,d,v=.2,ty='triangle'){const c=cx(),o=c.createOscillator(),g=c.
 const mark=i=>$$('#concert span,#written span').forEach((e,j)=>e.classList.toggle('on',i>=0&&j%7==i));
 function synth(f,t,d){const c=cx(),o=c.createOscillator(),l=c.createBiquadFilter(),g=c.createGain();o.type='sawtooth';o.frequency.value=f;l.type='lowpass';l.frequency.setValueAtTime(f*2,t);l.frequency.linearRampToValueAtTime(f*5,t+.08);l.frequency.linearRampToValueAtTime(f*3,t+d);g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.18,t+.04);g.gain.setValueAtTime(.18,t+Math.max(.05,d-.08));g.gain.linearRampToValueAtTime(0,t+d);o.connect(l);l.connect(g);g.connect(c.destination);o.start(t);o.stop(t+d+.02)}
 let libP;const SF={},SFL={};
+/* MusyngKite is a richer sample set than FluidR3_GM. If it fails to load, fall back to FluidR3_GM. */
+const BANKS=['MusyngKite','FluidR3_GM'];
 function lib(){return libP||(libP=new Promise(res=>{
   const urls=['https://cdn.jsdelivr.net/npm/soundfont-player@0.12.0/dist/soundfont-player.min.js','https://unpkg.com/soundfont-player@0.12.0/dist/soundfont-player.min.js'];
   const next=()=>{const u=urls.shift();if(!u)return res(false);const e=document.createElement('script');e.src=u;e.onload=()=>res(!!window.Soundfont);e.onerror=next;document.head.append(e)};next()}))}
 async function loadSF(n){if(SF[n])return SF[n];if(!(await lib()))return null;
-  return SFL[n]||(SFL[n]=Soundfont.instrument(cx(),n,{soundfont:'FluidR3_GM'}).then(p=>SF[n]=p).catch(()=>{delete SFL[n];return null}))}
+  return SFL[n]||(SFL[n]=(async()=>{for(const b of BANKS){try{const p=await Soundfont.instrument(cx(),n,{soundfont:b});if(p)return SF[n]=p}catch(e){}}delete SFL[n];return null})())}
 async function noteSeq(snd,seq,dur,gap){const c=cx(),p=await loadSF(snd),t0=c.currentTime+.1;
   seq.forEach(([i,m],k)=>{const t=t0+k*gap;
     if(p)p.play(m,t,{duration:dur,gain:1.6,adsr:[.03,.1,.85,.2]});else synth(hz(m),t,dur);
@@ -75,48 +77,124 @@ $('#play').onclick=async()=>{const b=$('#play'),lab=b.textContent,x=I[+$('#inst'
   b.disabled=true;b.textContent='Loading '+x[0].replace(/ \(.*\)/,'').toLowerCase()+'…';
   await noteSeq(x[3],seq,.5,.42);b.disabled=false;b.textContent=lab};
 
-const KEYS=['a','s','d','f'];/* keyboard keys for valves 1 to 4. Q and W change register. Trombone uses 1 to 7. */
+const KEYS=['a','s','d','f'];/* keyboard keys for valves 1 to 4. Q and W change register. B or Space blows air. Trombone uses 1 to 7. */
 const VS={1:2,2:1,3:3,4:5},F3={0:[],1:[2],2:[1],3:[1,2],4:[2,3],5:[1,3],6:[1,2,3]},F4={...F3,5:[4],6:[2,4],7:[1,4],8:[3,4],9:[2,3,4],10:[1,3,4],11:[1,2,3,4]};
-const FI={trumpet:{n:'Trumpet (B♭)',ab:'Tp',sf:'trumpet',off:2,v:3,p:[58,65,70,74,77,82],t:'Written pitch. A B♭ trumpet sounds a major 2nd lower.'},
-euph:{n:'Euphonium / baritone',ab:'Eu',sf:'trombone',off:0,v:4,p:[46,53,58,62,65,70],t:'Concert pitch, four valves.'},
-tuba:{n:'Tuba (BB♭)',ab:'Tu',sf:'tuba',off:0,v:4,p:[34,41,46,50,53,58,62],t:'Concert pitch, four valves.'},
-horn:{n:'French horn (F)',ab:'Hn',sf:'french_horn',off:7,v:3,p:[41,48,53,57,60,65,69,72],t:'Written pitch, F side of a double horn. Horn sounds a perfect 5th lower.'},
-trombone:{n:'Trombone',ab:'Tb',sf:'trombone',off:0,v:0,p:[46,53,58,62,65,70,74],t:'Concert pitch. Slide positions 1 to 7.'}};
-let fk='trumpet',pi=1,pos=1,fview=false;const dn=new Set();
-const FIk=()=>FI[fk],isT=()=>FIk().v==0,tbl=()=>FIk().v==4?F4:F3;
+/* p = open-note partials in concert pitch for the first variant. s = how many half-steps a variant shifts them up.
+   off = half-steps from the sounding note to the note you read (written = sounding + off). vals = valve counts you can choose. */
+const FI={
+trumpet:{n:'Trumpet',ab:'Tp',sf:'trumpet',v:3,p:[58,65,70,74,77,82],vars:[
+ {l:'B♭ trumpet',s:0,off:2,t:'Written pitch. A B♭ trumpet sounds a major 2nd lower.'},
+ {l:'C trumpet',s:2,off:0,t:'Written pitch. A C trumpet sounds exactly as written.'},
+ {l:'D trumpet',s:4,off:-2,t:'Written pitch. A D trumpet sounds a major 2nd higher.'},
+ {l:'E♭ trumpet',s:5,off:-3,t:'Written pitch. An E♭ trumpet sounds a minor 3rd higher.'}]},
+euph:{n:'Euphonium / baritone',ab:'Eu',sf:'trombone',v:4,vals:[4,3],p:[46,53,58,62,65,70],vars:[
+ {l:'B♭, bass clef (concert pitch)',s:0,off:0,t:'Concert pitch, as read in bass clef.'},
+ {l:'B♭, treble clef',s:0,off:14,t:'Written pitch, as read in treble clef. It sounds a major 9th lower.'}]},
+tuba:{n:'Tuba',ab:'Tu',sf:'tuba',v:4,vals:[4,3],p:[34,41,46,50,53,58,62],vars:[
+ {l:'BB♭ tuba',s:0,off:0,t:'Concert pitch. The most common school band tuba.'},
+ {l:'CC tuba',s:2,off:0,t:'Concert pitch. Pitched a whole step above BB♭.'},
+ {l:'E♭ tuba',s:5,off:0,t:'Concert pitch. Smaller, pitched a perfect 4th above BB♭.'},
+ {l:'F tuba',s:7,off:0,t:'Concert pitch. Pitched a perfect 5th above BB♭.'}]},
+horn:{n:'French horn',ab:'Hn',sf:'french_horn',v:3,p:[41,48,53,57,60,65,69,72],vars:[
+ {l:'Double horn, F side',s:0,off:7,t:'Written pitch, F side of a double horn. Horn sounds a perfect 5th lower.'},
+ {l:'Double horn, B♭ side',s:5,off:7,t:'Written pitch, B♭ side of a double horn (thumb trigger down). Same written notes, different fingerings. Sounds a perfect 5th lower.'}]},
+trombone:{n:'Trombone',ab:'Tb',sf:'trombone',v:0,p:[46,53,58,62,65,70,74],vars:[
+ {l:'Tenor trombone (B♭)',s:0,off:0,t:'Concert pitch. Slide positions 1 to 7.'},
+ {l:'Alto trombone (E♭)',s:5,off:0,t:'Concert pitch. Slide positions 1 to 7 on an E♭ alto.'}]}};
+let fk='trumpet',vi=0,nv=3,pi=1,pos=1,fview=false,pre=false,tkey='';
+const dn=new Set(),hd=new Set();let tdn=false,br=false,tap=false,tapT=0;
+/* dn = valves shown as pressed. hd = valves physically held right now. tdn = trombone position held. br = air button held. tap = chart tap. */
+const cfg=()=>{const b=FI[fk],x=b.vars[vi]||b.vars[0];return {...b,...x,v:b.vals?nv:b.v,p:b.p.map(a=>a+x.s)}};
+const isT=()=>cfg().v==0,tbl=()=>cfg().v==4?F4:F3;
 const depth=()=>isT()?pos-1:[...dn].reduce((a,v)=>a+VS[v],0);
-const nm=m=>fm(MAJ[m%12]+(Math.floor(m/12)-1));
-async function blip(sf,m){const c=cx(),p=await loadSF(sf);if(p)p.play(m,c.currentTime,{duration:.9,gain:1.6,adsr:[.03,.1,.85,.2]});else synth(hz(m),c.currentTime,.7)}
-function fRender(){const f=FIk();$('#ddav').textContent=f.ab;$('#ddn').textContent=f.n;$('#fnote').textContent=f.t;
+const nm=m=>fm(MAJ[((m%12)+12)%12]+(Math.floor(m/12)-1));
+
+/* ----- held notes ----- */
+function synthHold(f){const c=cx(),t=c.currentTime,o=c.createOscillator(),l=c.createBiquadFilter(),g=c.createGain();
+  o.type='sawtooth';o.frequency.value=f;l.type='lowpass';l.frequency.value=f*3;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.18,t+.05);
+  o.connect(l);l.connect(g);g.connect(c.destination);o.start(t);
+  return{stop(){const u=c.currentTime;g.gain.cancelScheduledValues(u);g.gain.setValueAtTime(g.gain.value,u);g.gain.linearRampToValueAtTime(0,u+.1);o.stop(u+.12)}}}
+/* Recorded notes are finite, so a held note re-triggers a fresh copy every 1.9 seconds and crossfades it in under the old one. */
+function holdStart(p,m){const c=cx(),h={on:true,nodes:[],tm:0,syn:null};
+  const fire=first=>{if(!h.on)return;
+    h.nodes.push(p.play(m,c.currentTime,{duration:2,gain:1.6,adsr:first?[.04,.1,.9,.5]:[.6,.1,.9,.5]}));
+    if(h.nodes.length>3)h.nodes.shift();
+    h.tm=setTimeout(()=>fire(false),1900)};
+  if(p)fire(true);else h.syn=synthHold(hz(m));
+  h.stop=()=>{h.on=false;clearTimeout(h.tm);const t=c.currentTime;h.nodes.forEach(n=>{try{n.stop(t+.12)}catch(e){}});if(h.syn)h.syn.stop()};
+  return h}
+let voice=null,vk=null,vtok=0;
+const active=()=>isT()?(tdn||br||tap):(hd.size>0||br||tap);
+function sound(){const f=cfg(),want=active()?f.p[pi]-depth():null,key=want==null?null:f.sf+':'+want;
+  if(key===vk)return;
+  vk=key;const tok=++vtok;
+  if(voice){voice.stop();voice=null}
+  if(want==null)return;
+  if(SF[f.sf]){voice=holdStart(SF[f.sf],want);return}
+  stat('Loading '+f.n.split(' ')[0].toLowerCase()+' sound…');
+  loadSF(f.sf).then(p=>{if(tok!==vtok)return;stat();voice=holdStart(p,want)})}
+function stat(t){$('#fstat').textContent=t||(SF[cfg().sf]?'Sound ready':'')}
+function preload(){if(!pre)return;const f=cfg();if(SF[f.sf]){stat();return}
+  stat('Loading '+f.n.split(' ')[0].toLowerCase()+' sound…');
+  loadSF(f.sf).then(p=>{if(f.sf==cfg().sf)stat(p?'':'Could not load the recorded sound, using a simple tone.')})}
+function allUp(){hd.clear();dn.clear();tdn=false;br=false;tap=false;tkey='';clearTimeout(tapT);fUpd()}
+
+/* ----- drawing the chart ----- */
+function fRender(){const f=cfg(),b=FI[fk];$('#ddav').textContent=f.ab;$('#ddn').textContent=f.n;
+  $('#fnote').textContent=f.t+(b.vals?' '+f.v+' valves.':'');
+  $('#fvar').innerHTML=b.vars.map((x,i)=>`<option value="${i}"${i==vi?' selected':''}>${x.l}</option>`).join('');
+  $('#fnvl').style.display=b.vals?'':'none';
+  if(b.vals)$('#fnv').innerHTML=b.vals.map(n=>`<option value="${n}"${n==nv?' selected':''}>${n} valves</option>`).join('');
   $('#fctl').innerHTML=isT()?[1,2,3,4,5,6,7].map(n=>`<button class="vb pos" data-pos="${n}" aria-pressed="false" aria-label="Position ${n}">${n}</button>`).join(''):Array.from({length:f.v},(_,i)=>`<button class="vb" data-v="${i+1}" aria-pressed="false" aria-label="Valve ${i+1}"><b>${i+1}</b><small>${KEYS[i].toUpperCase()}</small></button>`).join('');
-  $('#fhint').textContent=isT()?'Keyboard: keys 1 to 7 pick the slide position, Q and W change register. On a phone, tap a position.':`Keyboard: hold ${KEYS.slice(0,f.v).join(' ').toUpperCase()} for the valves, Q and W change register. On a phone, hold the valves with your fingers.`;
-  fUpd(false)}
-function fUpd(snd){const f=FIk(),d=depth(),m=f.p[pi]-d,dm=isT()||f.v==3?7:12,gap=Math.min(pi?f.p[pi]-f.p[pi-1]:dm,dm);
+  $('#fhint').textContent=isT()?'Hold a position (tap and hold, or hold keys 1 to 7) and the note keeps sounding. Q and W change register. Hold B or Space to blow on the current position.':`Hold the valves (tap and hold, or hold ${KEYS.slice(0,f.v).join(' ').toUpperCase()}) and the note keeps sounding. Q and W change register. For the open note, hold the button below, or hold B or Space.`;
+  fUpd();preload()}
+function fUpd(){const f=cfg(),d=depth(),m=f.p[pi]-d,dm=isT()||f.v==3?7:12,gap=Math.min(pi?f.p[pi]-f.p[pi-1]:dm,dm);
   $$('#fctl .vb').forEach(b=>{const on=isT()?+b.dataset.pos==pos:dn.has(+b.dataset.v);b.classList.toggle('down',on);b.setAttribute('aria-pressed',on)});
   $('#rn').textContent=nm(m+f.off);
   $('#rs').textContent=(f.off?'Sounds '+nm(m)+' · ':'')+'Fingering: '+(isT()?'position '+pos:dn.size?[...dn].sort().join(' + '):'open');
   $('#fchart').innerHTML=Array.from({length:gap},(_,k)=>`<button class="fc${k==d?' on':''}" data-d="${k}"><b>${nm(f.p[pi]-k+f.off)}</b><small>${isT()?'pos '+(k+1):(tbl()[k]||[]).join('·')||'open'}</small></button>`).join('');
   $('#rg').textContent=`Register ${pi+1} of ${f.p.length}`;
-  if(snd)blip(f.sf,m)}
-function reg(x){pi=Math.max(0,Math.min(FIk().p.length-1,pi+x));fUpd(true)}
+  $('#breath').setAttribute('aria-pressed',br);
+  sound()}
+function reg(x){pi=Math.max(0,Math.min(cfg().p.length-1,pi+x));fUpd()}
+
+/* ----- controls ----- */
 $('#ddl').innerHTML=Object.entries(FI).map(([k,f])=>`<li><button data-k="${k}"><span class="av sm">${f.ab}</span>${f.n}</button></li>`).join('');
 const dd=o=>{$('#ddl').hidden=!o;$('#ddb').setAttribute('aria-expanded',o)};
 $('#ddb').onclick=()=>dd($('#ddl').hidden);
-$('#ddl').onclick=e=>{const b=e.target.closest('button');if(!b)return;fk=b.dataset.k;pi=1;pos=1;dn.clear();dd(false);fRender();$('#ddb').focus()};
+$('#ddl').onclick=e=>{const b=e.target.closest('button');if(!b)return;allUp();fk=b.dataset.k;vi=0;nv=FI[fk].vals?FI[fk].vals[0]:FI[fk].v;pi=1;pos=1;dd(false);fRender();$('#ddb').focus()};
+$('#fvar').onchange=()=>{allUp();vi=+$('#fvar').value;fRender()};
+$('#fnv').onchange=()=>{allUp();nv=+$('#fnv').value;fRender()};
 document.addEventListener('click',e=>{if(!e.target.closest('.dd'))dd(false)});
 const fc=$('#fctl');
-fc.onpointerdown=e=>{const b=e.target.closest('.vb');if(!b)return;e.preventDefault();if(b.setPointerCapture)b.setPointerCapture(e.pointerId);if(b.dataset.pos)pos=+b.dataset.pos;else dn.add(+b.dataset.v);fUpd(true)};
-fc.onpointerup=fc.onpointercancel=e=>{const b=e.target.closest('.vb');if(b&&b.dataset.v){dn.delete(+b.dataset.v);fUpd(false)}};
-fc.onclick=e=>{if(e.detail)return;const b=e.target.closest('.vb');if(!b)return;if(b.dataset.pos)pos=+b.dataset.pos;else{const v=+b.dataset.v;dn.has(v)?dn.delete(v):dn.add(v)}fUpd(true)};
-$('#fchart').onclick=e=>{const b=e.target.closest('.fc');if(!b)return;const k=+b.dataset.d;if(isT())pos=k+1;else{dn.clear();(tbl()[k]||[]).forEach(v=>dn.add(v))}fUpd(true)};
+fc.onpointerdown=e=>{const b=e.target.closest('.vb');if(!b)return;e.preventDefault();if(b.setPointerCapture)b.setPointerCapture(e.pointerId);
+  if(b.dataset.pos){pos=+b.dataset.pos;tdn=true}else{if(!hd.size)dn.clear();hd.add(+b.dataset.v);dn.add(+b.dataset.v)}fUpd()};
+fc.onpointerup=fc.onpointercancel=e=>{const b=e.target.closest('.vb');if(!b)return;
+  if(b.dataset.v){hd.delete(+b.dataset.v);dn.delete(+b.dataset.v)}else tdn=false;fUpd()};
+fc.onclick=e=>{if(e.detail)return;const b=e.target.closest('.vb');if(!b)return;/* keyboard activation (Enter or Space on a focused button) */
+  if(b.dataset.pos){pos=+b.dataset.pos;tdn=true;fUpd();setTimeout(()=>{tdn=false;fUpd()},900)}
+  else{const v=+b.dataset.v;if(hd.has(v)){hd.delete(v);dn.delete(v)}else{hd.add(v);dn.add(v)}fUpd()}};
+$('#fchart').onclick=e=>{const b=e.target.closest('.fc');if(!b)return;const k=+b.dataset.d;
+  if(isT())pos=k+1;else{dn.clear();hd.clear();(tbl()[k]||[]).forEach(v=>dn.add(v))}
+  tap=true;clearTimeout(tapT);tapT=setTimeout(()=>{tap=false;fUpd()},1200);fUpd()};
+const bt=$('#breath');
+bt.onpointerdown=e=>{e.preventDefault();if(bt.setPointerCapture)bt.setPointerCapture(e.pointerId);br=true;fUpd()};
+bt.onpointerup=bt.onpointercancel=()=>{br=false;fUpd()};
+bt.onclick=e=>{if(e.detail)return;br=true;fUpd();setTimeout(()=>{br=false;fUpd()},900)};
 $('#rdn').onclick=()=>reg(-1);$('#rup').onclick=()=>reg(1);
-new IntersectionObserver(([x])=>{fview=x.isIntersecting},{threshold:.25}).observe($('#fingerings'));
+new IntersectionObserver(([x])=>{fview=x.isIntersecting;if(fview&&!pre){pre=true;preload()}if(!fview)allUp()},{threshold:.25}).observe($('#fingerings'));
+window.addEventListener('blur',allUp);
+document.addEventListener('visibilitychange',()=>{if(document.hidden)allUp()});
 const typing=e=>/INPUT|SELECT|TEXTAREA/.test(e.target.tagName);
-document.addEventListener('keydown',e=>{if(e.key=='Escape')dd(false);if(!fview||e.repeat||typing(e)||e.ctrlKey||e.metaKey||e.altKey)return;const k=e.key.toLowerCase(),i=KEYS.indexOf(k);
-  if(i>=0&&!isT()&&i<FIk().v){dn.add(i+1);fUpd(true)}
-  else if(isT()&&/^[1-7]$/.test(k)){pos=+k;fUpd(true)}
-  else if(k=='q')reg(-1);else if(k=='w')reg(1)});
-document.addEventListener('keyup',e=>{const i=KEYS.indexOf(e.key.toLowerCase());if(i>=0&&!isT()&&dn.has(i+1)){dn.delete(i+1);fUpd(false)}});
+document.addEventListener('keydown',e=>{if(e.key=='Escape')dd(false);if(!fview||e.repeat||typing(e)||e.ctrlKey||e.metaKey||e.altKey)return;const k=e.key.toLowerCase(),i=KEYS.indexOf(k),f=cfg();
+  if(i>=0&&!isT()&&i<f.v){if(!hd.size)dn.clear();hd.add(i+1);dn.add(i+1);fUpd()}
+  else if(isT()&&/^[1-7]$/.test(k)){pos=+k;tdn=true;tkey=k;fUpd()}
+  else if(k=='q')reg(-1);else if(k=='w')reg(1);
+  else if(k=='b'||(k==' '&&e.target.tagName!='BUTTON')){e.preventDefault();br=true;fUpd()}});
+document.addEventListener('keyup',e=>{const k=e.key.toLowerCase(),i=KEYS.indexOf(k);
+  if(i>=0&&!isT()&&hd.has(i+1)){hd.delete(i+1);dn.delete(i+1);fUpd()}
+  else if(isT()&&k==tkey){tdn=false;tkey='';fUpd()}
+  if((k=='b'||k==' ')&&br){br=false;fUpd()}});
 fRender();
 
 /* ---------- Flip cards ---------- */
@@ -156,20 +234,20 @@ const GEN=[
 ()=>{const [n,s]=pick(IV);return rnd(2)?mkq(`Which interval spans ${s} half-steps?`,n,IV.map(x=>x[0]),`${n} = ${s} half-steps.`):mkq(`How many half-steps are in a ${n}?`,''+s,IV.map(x=>''+x[1]),`${n} = ${s} half-steps.`)},
 ()=>{const [q,a,w,y]=pick(S);return {q,a,w:y,o:shuf([a,...w])}},
 ()=>{const [q,a,w,y]=pick(S);return {q,a,w:y,o:shuf([a,...w])}}];
-let qs,qn,sc,best=+ls('mb-best')||0;
+let qf=false,qs,qn,sc,best=+ls('mb-best')||0;
 function mk(n){const out=[],seen=new Set;while(out.length<n){const q=pick(GEN)();if(!seen.has(q.q)){seen.add(q.q);out.push(q)}}return out}
 function qstart(){qs=mk(10);qn=0;sc=0;qshow()}
 function qshow(){const q=qs[qn],z=$('#quiz');
   if(!q){if(sc>best){best=sc;ls('mb-best',sc)}
-    z.innerHTML=`<h3 class="hand big" id="qq" tabindex="-1">You scored ${sc} / ${qs.length}</h3><p>${sc==10?'Perfect score.':sc>6?'Nice work. Another round will lock it in.':'Keep going. Review the explanations and try another round.'} Best score: ${best}.</p><button class="btn" id="again" style="margin-top:12px">Play again</button>`;$('#qq').focus();return}
-  z.innerHTML=`<div class="bar"><i style="width:${qn/qs.length*100}%"></i></div><p class="mut">Question ${qn+1} of ${qs.length} · Score ${sc}</p><h3 class="hand big" id="qq" tabindex="-1">${fm(q.q)}</h3><div class="opts">${q.o.map((o,i)=>`<button class="opt" data-i="${i}">${fm(o)}</button>`).join('')}</div><p id="fb" role="status"></p>`;$('#qq').focus()}
+    z.innerHTML=`<h3 class="hand big" id="qq" tabindex="-1">You scored ${sc} / ${qs.length}</h3><p>${sc==10?'Perfect score.':sc>6?'Nice work. Another round will lock it in.':'Keep going. Review the explanations and try another round.'} Best score: ${best}.</p><button class="btn" id="again" style="margin-top:12px">Play again</button>`;if(qf)$('#qq').focus();return}
+  z.innerHTML=`<div class="bar"><i style="width:${qn/qs.length*100}%"></i></div><p class="mut">Question ${qn+1} of ${qs.length} · Score ${sc}</p><h3 class="hand big" id="qq" tabindex="-1">${fm(q.q)}</h3><div class="opts">${q.o.map((o,i)=>`<button class="opt" data-i="${i}">${fm(o)}</button>`).join('')}</div><p id="fb" role="status"></p>`;if(qf)$('#qq').focus()}
 $('#quiz').onclick=e=>{const b=e.target.closest('button');if(!b)return;
   if(b.id=='again')return qstart();if(b.id=='next'){qn++;return qshow()}
   if(!b.dataset.i||$('#fb').dataset.done)return;
   const q=qs[qn],ok=q.o[+b.dataset.i]==q.a;if(ok)sc++;
   $$('.opt').forEach(x=>{x.disabled=true;if(q.o[+x.dataset.i]==q.a)x.classList.add('good');else if(x===b)x.classList.add('bad')});
   $('#fb').dataset.done=1;$('#fb').innerHTML=`<b>${ok?'Correct.':'Not quite.'}</b> ${fm(q.w)} <button class="btn" id="next">${qn+1<qs.length?'Next':'See score'}</button>`;$('#next').focus()};
-qstart();
+qstart();qf=true;
 
 /* ---------- Metronome & tuning tones ---------- */
 let mt=0,dr;

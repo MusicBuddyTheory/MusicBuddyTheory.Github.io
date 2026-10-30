@@ -1,0 +1,22 @@
+[
+  {
+    "q": "What does fermata mean",
+    "a": "A fermata tells you to hold a note or rest longer than its written value. Your director decides how long."
+  },
+  {
+    "q": "What does dolce mean",
+    "a": "Dolce means sweetly and softly."
+  },
+  {
+    "q": "What is a time signature",
+    "a": "The two numbers at the start of a piece. The top number says how many beats are in each measure, and the bottom number says which note value gets one beat. In 4/4, there are 4 beats and a quarter note gets one."
+  },
+  {
+    "q": "What is the difference between major and minor",
+    "a": "Major scales and chords usually sound bright and happy. Minor ones usually sound darker or sadder. A major scale has a major 3rd above the starting note, and a minor scale has a minor 3rd."
+  },
+  {
+    "q": "What does staccato mean",
+    "a": "Staccato means play the note short and detached. Legato means smooth and connected."
+  }
+]

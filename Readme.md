@@ -2,12 +2,12 @@
 
 A band room survival kit for high school music students. Instrument setup guides, a transposition explorer, flashcards, a pop quiz, and practice tools, all in plain HTML, CSS and JavaScript. No build step, no frameworks, no accounts.
 
-Live site: https://problemsolver77.github.io/
+Live site: https://musicbuddytheory.github.io/
 
 ## What is in it
 
 - **Instrument guides** for flute, clarinet, saxophone, trumpet, trombone, French horn, baritone/tuba, percussion and strings. Each has four steps: assembly, posture, hand position, and breath and tone.
-- **Scales and transposition explorer.** Pick a concert key (major or natural minor) and your instrument, see the scale you actually read, and hear the scale played with a real recording of the instrument (trumpet, clarinet, flute, sax, trombone, horn, tuba, strings and more). Tap a note on the valve chart to hear it on trumpet.
+- **Scales and transposition explorer.** Pick a concert key (major or natural minor) and your instrument, see the scale you actually read, and hear the scale played with a real recording of the instrument (trumpet, clarinet, flute, sax, trombone, horn, tuba, strings and more).
 - **Playable fingering charts** for trumpet, euphonium/baritone, tuba, French horn and trombone. Pick the instrument from the dropdown, then hold the on-screen valves with your fingers (or the keys A S D F on a keyboard, Q and W to change register). Trombone uses slide positions 1 to 7. Every combination plays a real instrument sound.
 - **Flashcards** for the circle of fifths, interval math, key color and mood, and a keyboard map.
 - **Pop quiz.** Ten new questions every round (key signatures, transposition, relative minors, intervals, music vocabulary). Your best score is saved in your browser only.
@@ -18,7 +18,7 @@ Live site: https://problemsolver77.github.io/
 
 ```
 index.html   page structure and content
-styles.css   all styling (light and dark mode)
+styles.css   all styling (black and yellow theme)
 app.js       guides, scale engine, quiz, metronome, Mel chat
 worker.js    optional backend that gives Mel real AI answers (deployed separately)
 knowledge.json  extra answers for Mel that you can edit any time
@@ -26,8 +26,8 @@ knowledge.json  extra answers for Mel that you can edit any time
 
 ## Put it on GitHub Pages
 
-1. Create a repo named `problemsolver77.github.io` (or use your existing one).
-2. Put `index.html`, `styles.css`, `app.js` and this `README.md` in the root of the repo.
+1. Use a repo named `<your-username>.github.io` (yours is `MusicBuddyTheory.Github.io`).
+2. Put `index.html`, `styles.css`, `app.js`, `knowledge.json` and this README in the root of the repo.
 3. Delete any old copies of those files so nothing conflicts.
 4. In the repo, open Settings, then Pages, and set the source to your main branch and the `/ (root)` folder.
 5. Commit. The site updates within a minute or two.
@@ -44,8 +44,7 @@ knowledge.json  extra answers for Mel that you can edit any time
 
 - Sounds use the browser's Web Audio API, so the first tap on a sound button may be needed before audio plays on phones.
 - Instrument sounds are real recordings from the FluidR3 GM soundfont (Creative Commons Attribution 3.0, via midi-js-soundfonts), loaded on demand with the soundfont-player library (MIT). They need an internet connection; offline, the site falls back to a simple synthesized tone. The first play of each instrument takes a moment to download.
-- Fonts load from Google Fonts. Without a connection the site falls back to system fonts.
-- Light and dark mode follow the device setting.
+- The site uses a dark, black and yellow theme and your device's standard system fonts.
 
 ## Make Mel a real AI chatbot
 
@@ -53,14 +52,14 @@ GitHub Pages only serves static files, and an API key put in `app.js` would be p
 
 1. Get an Anthropic API key at https://console.anthropic.com (this is separate from a Claude chat subscription). Set a low monthly spend limit there.
 2. Create a free Cloudflare account, then make a new Worker (Workers and Pages, Create, Create Worker). Open its code editor, replace everything with the contents of `worker.js`, and deploy.
-3. In the Worker's settings, add a secret named `ANTHROPIC_API_KEY` with your key, and a variable named `ALLOWED_ORIGIN` set to `https://problemsolver77.github.io` (the site address only, no path, no trailing slash).
+3. In the Worker's settings, add a secret named `ANTHROPIC_API_KEY` with your key, and a variable named `ALLOWED_ORIGIN` set to `https://musicbuddytheory.github.io` (the site address only, no path, no trailing slash).
 4. Copy the Worker's URL and paste it between the quotes in `const MEL_API=''` at the top of `app.js`. Commit.
 
 If the Worker is unreachable, Mel falls back to the built-in answers and the teach-me notebook. Mel keeps the conversation in memory while the page is open, but does not remember anything after a refresh, and the AI does not learn from chats. Things you teach Mel are saved in that browser only.
 
 ## Teach Mel new answers instantly
 
-Open `knowledge.json` on GitHub, add an entry like `{ "q": "What does rubato mean", "a": "Rubato means flexible tempo." }`, and commit. Mel uses it as soon as the site updates (about a minute), even without the AI connected. If you also set the Worker variable `KNOWLEDGE_URL` to `https://problemsolver77.github.io/knowledge.json`, the AI reads those answers too and prefers them over its own.
+Open `knowledge.json` on GitHub, add an entry like `{ "q": "What does rubato mean", "a": "Rubato means flexible tempo." }`, and commit. Mel uses it as soon as the site updates (about a minute), even without the AI connected. If you also set the Worker variable `KNOWLEDGE_URL` to `https://musicbuddytheory.github.io/knowledge.json`, the AI reads those answers too and prefers them over its own.
 
 ## Keyboard keys for the fingering chart
 

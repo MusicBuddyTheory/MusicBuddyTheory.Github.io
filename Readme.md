@@ -9,16 +9,17 @@ Live site: https://musicbuddytheory.github.io/
 - **Instrument guides** for flute, clarinet, saxophone, trumpet, trombone, French horn, baritone/tuba, percussion and strings. Each has four steps: assembly, posture, hand position, and breath and tone.
 - **Scales and transposition explorer.** Pick a concert key (major or natural minor) and your instrument, see the scale you actually read, and hear the scale played with a real recording of the instrument (trumpet, clarinet, flute, sax, trombone, horn, tuba, strings and more).
 - **Playable fingering charts** for trumpet, euphonium/baritone, tuba, French horn and trombone. Pick the instrument from the dropdown, then hold the on-screen valves with your fingers (or the keys A S D F on a keyboard, Q and W to change register). Trombone uses slide positions 1 to 7. The note keeps sounding for as long as you hold the valves or slide position, and every combination plays a real instrument recording. A "Hold to play" button (or B or Space) blows the open note. Each instrument has a Type / key menu (B♭, C, D and E♭ trumpet; BB♭, CC, E♭ and F tuba; F or B♭ side on the horn; tenor or alto trombone; bass or treble clef euphonium) and tubas and euphoniums can switch between 3 and 4 valves.
+- **Scales on the fingering chart.** With Auto register on (the default), the chart picks the note closest to the last one you played, like a real player, so you can play a real scale by changing fingerings (A S D F for valves, press valves together for combinations like 1+3). Q and W jump a register. Every fingering also shows its alternates (for example 4 or 1+3, 1+2 or 3), and "Play a scale" shows and plays the fingering for every note of a major, minor or chromatic scale in any key.
 - **Flashcards** for the circle of fifths, interval math, key color and mood, and a keyboard map.
 - **Pop quiz.** Ten new questions every round (key signatures, transposition, relative minors, intervals, music vocabulary). Your best score is saved in your browser only.
-- **Practice tools.** A metronome and held tuning tones (concert B-flat, A, F and E-flat).
+- **Practice tools.** A metronome and held tuning tones (concert B-flat, A, F and E-flat) that you can play as a piano, trumpet, trombone, tuba, horn, clarinet, flute, alto sax, violin or a plain tone.
 - **Mel,** the music note mascot and chat helper. Out of the box Mel answers common band questions from built-in answers, and you can teach Mel new answers (saved in your browser only). Connect `worker.js` and Mel becomes a real AI that can answer open-ended music theory questions.
 
 ## Files
 
 ```
 index.html   page structure and content
-styles.css   all styling (dark blue and gold theme)
+styles.css   all styling (black and blue theme)
 app.js       guides, scale engine, quiz, metronome, Mel chat
 worker.js    optional backend that gives Mel real AI answers (deployed separately)
 knowledge.json  extra answers for Mel that you can edit any time
@@ -39,8 +40,9 @@ logo.svg, logo-mark.svg, favicon.svg   the logo files
 - **Quiz questions:** the `S` list (fixed questions) and the `GEN` list (generated questions) in `app.js`.
 - **Mel's built-in answers:** the `A` list in `app.js`. Each entry is a pattern and a reply.
 - **Mel's personality (AI mode):** the `SYSTEM` text at the top of `worker.js`.
-- **Colors:** the variables at the top of `styles.css` (`--bg`, `--card`, `--tint` and `--line` are the blues, `--accent` is the gold).
+- **Colors:** the variables at the top of `styles.css` (`--bg`, `--card`, `--tint` and `--line` are the blacks and greys, `--accent` and `--at` are the blues).
 - **Fingering chart instruments and keys:** the `FI` object in `app.js`. Each instrument has a list of `vars` (its keys or types), with a half-step shift `s` and a reading offset `off`.
+- **Fonts:** `--head` and `--body` at the top of `styles.css`, plus the Google Fonts link in `index.html`.
 - **Logo:** `logo-mark.svg` and `favicon.svg`. Mel is only the chat mascot and is not part of the logo.
 - **Logo wordmark font:** the `--logo-font` line near the bottom of `styles.css`.
 
@@ -48,7 +50,7 @@ logo.svg, logo-mark.svg, favicon.svg   the logo files
 
 - Sounds use the browser's Web Audio API, so the first tap on a sound button may be needed before audio plays on phones.
 - Instrument sounds are real recordings from the MusyngKite soundfont (Creative Commons Attribution Share-Alike 3.0, via midi-js-soundfonts), with the FluidR3 GM soundfont (Creative Commons Attribution 3.0) as a backup if it cannot load, loaded on demand with the soundfont-player library (MIT). They need an internet connection; offline, the site falls back to a simple synthesized tone. The first play of each instrument takes a moment to download.
-- The site uses a dark blue and gold theme and your device's standard system fonts.
+- The site uses a black and blue theme. Text is set in Poppins and Inter, loaded from Google Fonts; if they cannot load, your device's standard system fonts are used.
 
 ## Make Mel a real AI chatbot
 

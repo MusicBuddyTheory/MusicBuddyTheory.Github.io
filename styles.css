@@ -136,3 +136,11 @@ h1,.slide h3{letter-spacing:-.01em}
 #pmsg{min-height:2.8em;margin-top:14px}
 .playpad{margin-top:22px;padding-top:6px;border-top:1px dashed var(--line)}
 #pn{font-size:36px;font-weight:700;color:var(--at);line-height:1.1}
+
+.deckcard{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin-top:18px}
+.deckcard h3{font-size:26px;margin:4px 0 2px}
+.lg{font-weight:700}.lg.g{color:var(--goodb)}.lg.r{color:var(--badb)}
+.stale{position:sticky;top:0;z-index:50;background:#b3261e;color:#fff;padding:12px 16px;font-weight:600;text-align:center}
+#mst{margin:0;padding:6px 16px 0;font-size:12px}
+.mel svg use{filter:none}
+.mel{border-color:var(--accent)}

@@ -11,10 +11,10 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@500;600;700;800&family=Source+Sans+3:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="styles.css?v=4">
 </head>
 <body>
-<svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="mel-note" viewBox="0 0 64 64"><path d="M26 12v30a9 7 0 1 0 6 6.4V22l16 5v-9z" fill="#E9A83B" stroke="#3a2a18" stroke-width="3" stroke-linejoin="round"/><circle cx="20.5" cy="45.5" r="3.2" fill="#fff" stroke="#3a2a18" stroke-width="1.5"/><circle cx="27.5" cy="45.5" r="3.2" fill="#fff" stroke="#3a2a18" stroke-width="1.5"/><circle cx="21.2" cy="46.2" r="1.5" fill="#3a2a18"/><circle cx="28.2" cy="46.2" r="1.5" fill="#3a2a18"/><path d="M21 51q3.5 3 7 0" stroke="#3a2a18" stroke-width="2" fill="none" stroke-linecap="round"/></symbol>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="mel-note" viewBox="0 0 64 64"><path d="M26 12v30a9 7 0 1 0 6 6.4V22l16 5v-9z" fill="#1d3f9e" stroke="#7aa5ff" stroke-width="3" stroke-linejoin="round"/><circle cx="20.5" cy="45.5" r="3.2" fill="#fff" stroke="#0a1636" stroke-width="1.5"/><circle cx="27.5" cy="45.5" r="3.2" fill="#fff" stroke="#0a1636" stroke-width="1.5"/><circle cx="21.2" cy="46.2" r="1.5" fill="#0a1636"/><circle cx="28.2" cy="46.2" r="1.5" fill="#0a1636"/><path d="M21 51q3.5 3 7 0" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/></symbol>
 <symbol id="i-guide" viewBox="0 0 24 24"><path d="M3 5h7a2 2 0 0 1 2 2v13a2 2 0 0 0-2-2H3zM21 5h-7a2 2 0 0 0-2 2v13a2 2 0 0 1 2-2h7z"/></symbol>
 <symbol id="i-keys" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M9 5v14M15 5v14"/></symbol>
 <symbol id="i-valve" viewBox="0 0 24 24"><path d="M6 3v7M12 3v7M18 3v7"/><circle cx="6" cy="15" r="3"/><circle cx="12" cy="15" r="3"/><circle cx="18" cy="15" r="3"/></symbol>
@@ -84,7 +84,7 @@
 <article class="post play" id="playpage">
   <header class="ph"><span class="av sm"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-play"/></svg></span><div><b>Play music</b><span class="s">Practice scales and sight-read random songs on your instrument</span></div></header>
   <div class="pad">
-    <div class="seg" role="group" aria-label="What to practice"><button class="btn" id="pm-scale" aria-pressed="true">Scale</button><button class="btn" id="pm-song" aria-pressed="false">Random song</button></div>
+    <div class="seg" role="group" aria-label="What to practice"><button class="btn" id="pm-scale" aria-pressed="true">Scale</button><button class="btn" id="pm-song" aria-pressed="false">Songs</button></div>
     <div class="row end" style="margin-top:16px">
       <label>Instrument<select id="pinst"></select></label>
       <label>Type / key<select id="pvar"></select></label>
@@ -92,14 +92,16 @@
       <label id="pstl">4th valve<select id="pstyle"><option value="0">Standard (use 4)</option><option value="1">Use 1+3 instead of 4</option></select></label>
     </div>
     <div class="row end" style="margin-top:12px">
-      <label>Key (as you read it)<select id="pkey"></select></label>
-      <label>Scale type<select id="pmode"><option value="0">Major</option><option value="1">Natural minor</option></select></label>
-      <label id="plenl" style="display:none">Length<select id="plen"><option value="4">4 measures</option><option value="8">8 measures</option></select></label>
+      <label id="pkl">Key (as you read it)<select id="pkey"></select></label>
+      <label id="pml">Scale type<select id="pmode"><option value="0">Major</option><option value="1">Natural minor</option></select></label>
+      <label id="plenl" style="display:none">Song length<select id="plen"><option value="4">4 measures</option><option value="8">8 measures</option></select></label>
       <label>Listen tempo: <output id="ptv">80</output> BPM<input id="ptempo" type="range" min="40" max="140" value="80"></label>
     </div>
-    <div class="staffbox"><div id="pstaff"></div></div>
+    <div id="pfind" class="deckcard" style="display:none"><b>Find a song to play</b><p class="mut">I will line up 12 random songs. Each one plays as it shows up. Skip the ones you do not like, then play the one you pick.</p><button class="btn" id="dfind" style="margin-top:10px">Find me a song</button></div>
+    <div id="pdeck" class="deckcard" style="display:none"><span class="mut" id="dcount"></span><h3 id="dname"></h3><span class="mut" id="dmeta"></span><div class="row" style="margin-top:14px"><button class="btn alt" id="dback">‹ Back</button><button class="btn alt" id="dreplay">Replay</button><button class="btn alt" id="dskip">Skip ›</button><button class="btn" id="dpick">Play this one</button></div></div>
+    <div class="staffbox" id="pbox"><div id="pstaff"></div><p class="mut" id="plegend" style="display:none;margin:8px 0 0;text-align:center"><span class="lg g">●</span> right on the first try &nbsp;&nbsp; <span class="lg r">●</span> missed</p></div>
     <p id="pmsg" role="status"></p>
-    <div class="row" style="margin-top:12px"><button class="btn" id="pgo" aria-pressed="false">Practice</button><button class="btn alt" id="plisten" aria-pressed="false">Listen</button><button class="btn alt" id="pnew" style="display:none">New song</button><label class="chk" style="margin:0 0 0 6px"><input type="checkbox" id="phint">Show fingerings</label></div>
+    <div class="row" id="pacts" style="margin-top:12px"><button class="btn" id="pgo" aria-pressed="false">Practice</button><button class="btn alt" id="plisten" aria-pressed="false">Listen</button><button class="btn alt" id="pnew" style="display:none">Pick a different song</button><label class="chk" style="margin:0 0 0 6px"><input type="checkbox" id="phint">Show fingerings</label></div>
     <div class="playpad">
       <div class="fctl" id="pctl"></div>
       <div class="read"><div id="pn" aria-live="off"></div><div class="mut" id="ps"></div></div>
@@ -150,10 +152,16 @@
 <button id="mel" class="mel" aria-label="Ask Mel, the music note mascot" aria-expanded="false" aria-controls="drawer"><svg width="48" height="48" aria-hidden="true"><use href="#mel-note"/></svg></button>
 <aside id="drawer" class="drawer" aria-label="Mel chat" hidden>
   <header><b><svg width="28" height="28" aria-hidden="true"><use href="#mel-note"/></svg>Mel</b><button id="x" aria-label="Close chat">&times;</button></header>
+  <p id="mst" class="mut" role="status"></p>
   <div id="log" role="log" aria-live="polite"></div>
   <div id="chips"></div>
   <form id="f"><input id="q" type="text" aria-label="Your question" placeholder="Ask Mel a music question" autocomplete="off"><button class="btn">Send</button></form>
 </aside>
-<script src="app.js"></script>
+<script src="config.js?v=4"></script>
+<script src="brain.js?v=4"></script>
+<script src="app.js?v=4"></script>
+<script>
+if(window.MB_VER!==4||!window.MB_OK){var d=document.createElement('div');d.className='stale';d.textContent=window.MB_VER!==4?'Heads up: app.js on this site is an old copy. Upload every file from the newest version (index.html, app.js, brain.js, styles.css, config.js) to the site, then press Ctrl+Shift+R to refresh.':'Something stopped the page from starting. Press F12, open the Console tab, and send the red message to the site owner.';document.body.prepend(d)}
+</script>
 </body>
 </html>

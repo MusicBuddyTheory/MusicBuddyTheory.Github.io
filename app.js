@@ -82,23 +82,23 @@ const VS={1:2,2:1,3:3,4:5},F3={0:[],1:[2],2:[1],3:[1,2],4:[2,3],5:[1,3],6:[1,2,3
 /* p = open-note partials in concert pitch for the first variant. s = how many half-steps a variant shifts them up.
    off = half-steps from the sounding note to the note you read (written = sounding + off). vals = valve counts you can choose. */
 const FI={
-trumpet:{n:'Trumpet',ab:'Tp',sf:'trumpet',v:3,p:[58,65,70,74,77,82],vars:[
+trumpet:{n:'Trumpet',ab:'Tp',sf:'trumpet',clef:'t',v:3,p:[58,65,70,74,77,82],vars:[
  {l:'B♭ trumpet',s:0,off:2,t:'Written pitch. A B♭ trumpet sounds a major 2nd lower.'},
  {l:'C trumpet',s:2,off:0,t:'Written pitch. A C trumpet sounds exactly as written.'},
  {l:'D trumpet',s:4,off:-2,t:'Written pitch. A D trumpet sounds a major 2nd higher.'},
  {l:'E♭ trumpet',s:5,off:-3,t:'Written pitch. An E♭ trumpet sounds a minor 3rd higher.'}]},
-euph:{n:'Euphonium / baritone',ab:'Eu',sf:'trombone',v:4,vals:[4,3],p:[46,53,58,62,65,70],vars:[
- {l:'B♭, bass clef (concert pitch)',s:0,off:0,t:'Concert pitch, as read in bass clef.'},
- {l:'B♭, treble clef',s:0,off:14,t:'Written pitch, as read in treble clef. It sounds a major 9th lower.'}]},
-tuba:{n:'Tuba',ab:'Tu',sf:'tuba',v:4,vals:[4,3],p:[34,41,46,50,53,58,62],vars:[
+euph:{n:'Euphonium / baritone',ab:'Eu',sf:'trombone',clef:'b',v:4,vals:[4,3],p:[46,53,58,62,65,70],vars:[
+ {l:'B♭, bass clef (concert pitch)',s:0,off:0,clef:'b',t:'Concert pitch, as read in bass clef.'},
+ {l:'B♭, treble clef',s:0,off:14,clef:'t',t:'Written pitch, as read in treble clef. It sounds a major 9th lower.'}]},
+tuba:{n:'Tuba',ab:'Tu',sf:'tuba',clef:'b',v:4,vals:[4,3],p:[34,41,46,50,53,58,62],vars:[
  {l:'BB♭ tuba',s:0,off:0,t:'Concert pitch. The most common school band tuba.'},
  {l:'CC tuba',s:2,off:0,t:'Concert pitch. Pitched a whole step above BB♭.'},
  {l:'E♭ tuba',s:5,off:0,t:'Concert pitch. Smaller, pitched a perfect 4th above BB♭.'},
  {l:'F tuba',s:7,off:0,t:'Concert pitch. Pitched a perfect 5th above BB♭.'}]},
-horn:{n:'French horn',ab:'Hn',sf:'french_horn',v:3,p:[41,48,53,57,60,65,69,72],vars:[
+horn:{n:'French horn',ab:'Hn',sf:'french_horn',clef:'t',v:3,p:[41,48,53,57,60,65,69,72],vars:[
  {l:'Double horn, F side',s:0,off:7,t:'Written pitch, F side of a double horn. Horn sounds a perfect 5th lower.'},
  {l:'Double horn, B♭ side',s:5,off:7,t:'Written pitch, B♭ side of a double horn (thumb trigger down). Same written notes, different fingerings. Sounds a perfect 5th lower.'}]},
-trombone:{n:'Trombone',ab:'Tb',sf:'trombone',v:0,p:[46,53,58,62,65,70,74],vars:[
+trombone:{n:'Trombone',ab:'Tb',sf:'trombone',clef:'b',v:0,p:[46,53,58,62,65,70,74],vars:[
  {l:'Tenor trombone (B♭)',s:0,off:0,t:'Concert pitch. Slide positions 1 to 7.'},
  {l:'Alto trombone (E♭)',s:5,off:0,t:'Concert pitch. Slide positions 1 to 7 on an E♭ alto.'}]}};
 const SM=[['Major',ST[0]],['Natural minor',ST[1]],['Chromatic',[0,1,2,3,4,5,6,7,8,9,10,11]]];
@@ -124,6 +124,8 @@ function fingerFor(m,f){for(let i=0;i<f.p.length;i++){const d=f.p[i]-m;if(d>=0&&
 /* the note you get: in auto mode, of the notes this fingering can reach, the one closest to the last note you played */
 function pitch(){const f=cfg(),d=depth();
   if(!auto)return{m:f.p[pi]-d,i:pi};
+  /* while practicing, a fingering that can make the note on the page sounds that note (a player aims the pitch with the embouchure). Any other fingering sounds the closest note and counts as a mistake. */
+  if(P.practice&&P.notes[P.idx]){const t=P.notes[P.idx].snd,k=f.p.findIndex((q,x)=>q-d==t&&d<gapOf(f,x));if(k>=0)return{m:t,i:k}}
   if(frc&&frc.d==d)return{m:frc.m,i:frc.i};
   let best=null;
   f.p.forEach((q,i)=>{if(d>=gapOf(f,i))return;const m=q-d,dist=Math.abs(m-(ref==null?f.p[pi]:ref));
@@ -156,7 +158,7 @@ function sound(){const w=active()?pitch():null;
 function commit(){const w=active()?pitch():null;if(!w){stopVoice();return}
   const f=cfg(),key=f.sf+':'+w.m;if(key===vk)return;
   if(voice){voice.stop();voice=null}
-  vk=key;ref=w.m;const tok=++vtok;
+  vk=key;ref=w.m;const tok=++vtok;pAttack(w.m);
   if(SF[f.sf]){voice=holdStart(SF[f.sf],w.m);return}
   stat('Loading '+f.n.split(' ')[0].toLowerCase()+' sound…');
   loadSF(f.sf).then(p=>{if(tok!==vtok)return;stat();voice=holdStart(p,w.m)})}
@@ -176,15 +178,16 @@ function fRender(){const f=cfg(),b=FI[fk];$('#ddav').textContent=f.ab;$('#ddn').
   $('#fctl').innerHTML=isT()?[1,2,3,4,5,6,7].map(n=>`<button class="vb pos" data-pos="${n}" aria-pressed="false" aria-label="Position ${n}">${n}</button>`).join(''):Array.from({length:f.v},(_,i)=>`<button class="vb" data-v="${i+1}" aria-pressed="false" aria-label="Valve ${i+1}"><b>${i+1}</b><small>${KEYS[i].toUpperCase()}</small></button>`).join('');
   $('#fhint').textContent=isT()?'Hold a position (tap and hold, or hold keys 1 to 7) and the note keeps sounding. To play a scale, change positions: Auto register picks the closest note, like a real player. Q and W jump up or down a register. Hold B or Space to blow on the current position.':`Hold the valves (tap and hold, or hold ${KEYS.slice(0,f.v).join(' ').toUpperCase()}) and the note keeps sounding. To play a scale, change fingerings: Auto register picks the closest note, like a real player, and you can press valves together like 1+3. Q and W jump up or down a register. For the open note, hold the button, or hold B or Space.`;
   ref=f.p[pi];frc=null;
-  fUpd();scGrid();preload()}
+  pSync();fUpd();preload()}
 function fUpd(){const f=cfg(),d=depth(),t=pitch(),m=t.m;if(auto)pi=t.i;
   const gap=gapOf(f,pi),cur=[...dn].sort(),alts=(!isT()&&d>0)?combos(d,f).filter(c=>String(c)!=String(cur)).map(c=>fmtC(c,'+')):[];
-  $$('#fctl .vb').forEach(b=>{const on=isT()?+b.dataset.pos==pos:dn.has(+b.dataset.v);b.classList.toggle('down',on);b.setAttribute('aria-pressed',on)});
+  $$('.vb').forEach(b=>{const on=isT()?+b.dataset.pos==pos:dn.has(+b.dataset.v);b.classList.toggle('down',on);b.setAttribute('aria-pressed',on)});
   $('#rn').textContent=nm(m+f.off);
   $('#rs').textContent=(f.off?'Sounds '+nm(m)+' · ':'')+'Fingering: '+(isT()?'position '+pos:cur.length?cur.join(' + '):'open')+(alts.length?' · also '+alts.join(', '):'');
   $('#fchart').innerHTML=Array.from({length:gap},(_,k)=>`<button class="fc${k==d?' on':''}" data-d="${k}"><b>${nm(f.p[pi]-k+f.off)}</b><small>${isT()?'pos '+(k+1):combos(k,f).map(c=>fmtC(c)).join(' / ')}</small></button>`).join('');
   $('#rg').textContent=`Register ${pi+1} of ${f.p.length}`;
-  $('#breath').setAttribute('aria-pressed',br);
+  $('#pn').textContent=$('#rn').textContent;$('#ps').textContent=$('#rs').textContent;
+  $('#breath').setAttribute('aria-pressed',br);$('#pbreath').setAttribute('aria-pressed',br);
   sound()}
 function reg(x){const f=cfg(),d=depth();
   if(auto){const cur=pitch().m,l=f.p.map((q,i)=>({m:q-d,i})).sort((a,b)=>a.m-b.m),n=x>0?l.find(o=>o.m>cur):[...l].reverse().find(o=>o.m<cur);
@@ -192,61 +195,168 @@ function reg(x){const f=cfg(),d=depth();
   else pi=Math.max(0,Math.min(f.p.length-1,pi+x));
   fUpd()}
 
-/* ----- scales ----- */
-function seqFor(f){const r=+$('#skey').value,st=SM[+$('#smode').value][1],tc=(((r-f.off)%12)+12)%12;
-  let t=f.p[0];while(((t%12)+12)%12!=tc)t++;
-  if(t+12>f.p[f.p.length-1]&&t-12>=f.p[0]-6)t-=12;
-  return [...st.map(s=>t+s),t+12].map((m,k)=>({m,k}))}
-function scGrid(){const f=cfg();
-  $('#sgrid').innerHTML=seqFor(f).map(n=>{const x=fingerFor(n.m,f);return `<div class="fc" data-k="${n.k}"><b>${nm(n.m+f.off)}</b><small>${x?(isT()?'pos '+(x.d+1):combos(x.d,f).map(c=>fmtC(c)).join(' / ')):'out of range'}</small></div>`}).join('')}
-let scTok=0,scNode=null;
+/* ---------- Staff notation (drawn as SVG so it looks the same on every device) ---------- */
+/* Every note has a "dia" number: octave*7 + letter (C=0 ... B=6). Treble clef bottom line is E4 (30), bass clef bottom line is G2 (18). */
+const SHP=[38,35,39,36,33,37,34],FLT=[34,37,33,36,32,35,31];/* key signature positions in treble clef. Bass clef sits 14 steps lower. */
+const CLEF_T='M-3 28C-4 35 7 36 7 28L3.5 -36C3.2 -44 8 -47 10.5 -42C13 -36 6 -28 -1 -20C-9 -11 -11 0 -7 6C-3 12 7 11 9 3C11 -5 5 -11 -1 -8C-6 -5 -4 3 2 3';
+const CLEF_B='M-2 0C4 -9 17 -6 17 6C17 18 5 27 -13 33';
+function keyInfo(r,m){const names=scale(r,m),a=acc(names);
+  return{r,m,names,n:a.length,sharp:!!a.length&&a[0][1]=='#',sp:names.map(s=>({l:L.indexOf(s[0]),a:s.length>1?(s[1]=='#'?1:-1):0}))}}
+/* degree n of the key (0 = tonic, 7 = the tonic an octave up) written in octave o: its midi number, staff position and name */
+function spell(ki,o,n){const k=((n%7)+7)%7,s=ki.sp[k],step=ki.sp[0].l+n,oct=o+Math.floor(step/7);
+  return{midi:12*(oct+1)+N[s.l]+s.a,dia:oct*7+s.l,l:s.l,a:s.a,name:fm(ki.names[k])}}
+const sharpSym='<g class="ks"><path d="M-2.2 -8V9M2.4 -9V8" stroke-width="1.3"/><path d="M-5 -2.5L5 -4.5M-5 3.5L5 1.5" stroke-width="2.6"/></g>';
+const flatSym='<g class="ks"><path d="M-3 -14V6" stroke-width="1.5"/><path d="M-3 6C9 -1 8 -9 -3 -4" stroke-width="1.7"/></g>';
+function staffSVG(o){
+  const bass=o.clef=='b',bd=bass?18:30,ki=o.ki,kn=ki?ki.n:0,x0=44+(kn?kn*9+8:0),ts=o.time?26:0,mw=o.mw||150,mpl=o.mpl||2,len=o.len||1,
+    lines=Math.ceil(len/mpl),SY=o.labels?154:118,T=40,xs=x0+ts,W=xs+Math.min(mpl,len)*mw+8,H=lines*SY,
+    yOf=(y0,d)=>y0+40-(d-bd)*5;
+  let s='';
+  for(let ln=0;ln<lines;ln++){const y0=ln*SY+T,nm_=Math.min(mpl,len-ln*mpl),xe=xs+nm_*mw,last=ln==lines-1;
+    for(let i=0;i<5;i++)s+=`<line class="ln" x1="6" x2="${xe}" y1="${y0+i*10}" y2="${y0+i*10}"/>`;
+    s+=`<line class="bar" x1="6" x2="6" y1="${y0}" y2="${y0+40}"/>`;
+    for(let j=1;j<=nm_;j++){const x=xs+j*mw;
+      if(j==nm_&&last&&ln*mpl+j>=len)s+=`<line class="bar" x1="${x-5}" x2="${x-5}" y1="${y0}" y2="${y0+40}"/><line class="bar" x1="${x-1}" x2="${x-1}" y1="${y0}" y2="${y0+40}" style="stroke-width:3.5"/>`;
+      else s+=`<line class="bar" x1="${x}" x2="${x}" y1="${y0}" y2="${y0+40}"/>`}
+    s+=bass?`<g transform="translate(16 ${y0+10})"><path class="clef" d="${CLEF_B}"/><circle class="cf" cx="-2" cy="0" r="3.4"/><circle class="cf" cx="23" cy="-5" r="1.9"/><circle class="cf" cx="23" cy="5" r="1.9"/></g>`
+      :`<g transform="translate(16 ${y0+30})"><path class="clef" d="${CLEF_T}"/><circle class="cf" cx="-3" cy="28" r="2.6"/></g>`;
+    for(let i=0;i<kn;i++){const d=(ki.sharp?SHP:FLT)[i]-(bass?14:0);s+=`<g transform="translate(${44+i*9} ${yOf(y0,d)})">${ki.sharp?sharpSym:flatSym}</g>`}
+    if(o.time&&ln==0)s+=`<text class="ts" x="${x0+11}" y="${y0+19}">4</text><text class="ts" x="${x0+11}" y="${y0+39}">4</text>`}
+  const ns=(o.notes||[]).map((n,i)=>{const m=Math.floor(n.beat/4+1e-6),ln=Math.floor(m/mpl),j=m%mpl,bm=n.beat-m*4;
+    return{...n,i,ln,x:xs+j*mw+18+bm*(mw-30)/4,y:yOf(ln*SY+T,n.dia)}});
+  ns.forEach((n,i)=>{const q=ns[i+1];if(n.dur=='e'&&!n.sk&&q&&q.dur=='e'&&q.ln==n.ln&&Math.abs(q.beat-n.beat-.5)<.01){n.pr=q;q.sk=1}});
+  ns.forEach(n=>{const y0=n.ln*SY+T,k0=n.dia-bd;let g='';
+    if(k0<0)for(let k=-2;k>=k0;k-=2)g+=`<line class="ld" x1="${n.x-10}" x2="${n.x+10}" y1="${y0+40-k*5}" y2="${y0+40-k*5}"/>`;
+    if(k0>8)for(let k=10;k<=k0;k+=2)g+=`<line class="ld" x1="${n.x-10}" x2="${n.x+10}" y1="${y0+40-k*5}" y2="${y0+40-k*5}"/>`;
+    g+=`<ellipse class="hd${n.dur=='h'||n.dur=='w'?' o':''}" cx="${n.x}" cy="${n.y}" rx="6" ry="4.4" transform="rotate(-20 ${n.x} ${n.y})"/>`;
+    if(n.pr){const q=n.pr,up=(n.dia+q.dia)/2<bd+4,dx=up?5.6:-5.6,by=up?Math.min(n.y,q.y)-34:Math.max(n.y,q.y)+34;
+      g+=`<line class="st" x1="${n.x+dx}" x2="${n.x+dx}" y1="${n.y}" y2="${by}"/><line class="st" x1="${q.x+dx}" x2="${q.x+dx}" y1="${q.y}" y2="${by}"/><line class="bm" x1="${n.x+dx-.8}" x2="${q.x+dx+.8}" y1="${by}" y2="${by}"/>`}
+    else if(!n.sk&&n.dur!='w'){const up=n.dia<bd+4,dx=up?5.6:-5.6,ey=up?n.y-34:n.y+34;
+      g+=`<line class="st" x1="${n.x+dx}" x2="${n.x+dx}" y1="${n.y}" y2="${ey}"/>`;
+      if(n.dur=='e')g+=`<path class="st" fill="none" d="M${n.x+dx} ${ey}q8 ${up?6:-6} 6 ${up?15:-15}"/>`}
+    if(o.labels&&n.lb)g+=`<text x="${n.x}" y="${y0+98+(n.sk?14:0)}">${n.lb}</text>`;
+    s+=`<g class="nt ${n.state||''}" data-i="${n.i}">${g}</g>`});
+  return `<svg class="stf" viewBox="0 0 ${W} ${H}" role="img" aria-label="${o.alt||'Music staff'}">${s}</svg>`}
+
+/* ---------- Play page: scales and random songs ---------- */
+const P={mode:'scale',notes:[],ki:null,clef:'t',len:4,idx:0,mis:0,practice:false,listening:false,cur:-1,flash:false,done:false};
+let lTok=0,jt=0;
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
-function scEnd(){const b=$('#splay');delete b.dataset.on;b.textContent='Play the scale';frc=null;dn.clear();hd.clear();$$('#sgrid .fc').forEach(e=>e.classList.remove('on'));fUpd()}
-async function playScale(){const b=$('#splay');
-  if(b.dataset.on){scTok++;if(scNode){try{scNode.stop()}catch(e){}}scEnd();return}
-  const f=cfg(),up=seqFor(f),seq=[...up,...up.slice(0,-1).reverse()],tok=++scTok;
-  b.dataset.on=1;b.textContent='Stop';allUp();stat('Loading sound…');
-  const p=await loadSF(f.sf);stat();const c=cx();
-  for(const n of seq){if(tok!==scTok)break;const x=fingerFor(n.m,f);if(!x)continue;
-    dn.clear();hd.clear();if(isT())pos=x.d+1;else pickCombo(x.d,f).forEach(v=>dn.add(v));
-    ref=n.m;frc={m:n.m,i:x.i,d:x.d};pi=x.i;fUpd();
-    $$('#sgrid .fc').forEach(e=>e.classList.toggle('on',+e.dataset.k==n.k));
-    if(p)scNode=p.play(n.m,c.currentTime,{duration:.5,gain:1.6,adsr:[.03,.1,.85,.2]});else synth(hz(n.m),c.currentTime,.5);
-    await sleep(540)}
-  if(tok===scTok)scEnd()}
+const fingTxt=(m,f,short)=>{const x=fingerFor(m,f);if(!x)return short?'–':'out of range';
+  return isT()?(short?''+(x.d+1):'position '+(x.d+1)):combos(x.d,f).slice(0,short?1:9).map(c=>fmtC(c,'+')).join(' or ')};
+/* a note is usable if the instrument can play it and it sits within three ledger lines of the staff, so it stays readable */
+const pOk=(ki,o,n,f)=>{const sp=spell(ki,o,n),bd=(f.clef||'t')=='b'?18:30;return sp.dia>=bd-6&&sp.dia<=bd+14&&!!fingerFor(sp.midi-f.off,f)};
+/* choose an octave where every note of the piece fits the instrument, and report how far down and up the key can go from the tonic */
+function pPlan(r,m,song){const f=cfg(),ki=keyInfo(r,m),tgt=(f.p[0]+f.p[Math.min(1,f.p.length-1)])/2+2;let best=null;
+  for(let o=0;o<=7;o++){if(!pOk(ki,o,0,f))continue;let lo=0,hi=0;
+    while(lo>-3&&pOk(ki,o,lo-1,f))lo--;while(hi<9&&pOk(ki,o,hi+1,f))hi++;
+    const sc=Math.abs(spell(ki,o,0).midi-f.off-tgt)+((song?hi-lo>=6:hi>=7)?0:100);
+    if(!best||sc<best.sc)best={o,lo,hi:song?Math.min(hi,lo+10):hi,sc,ki}}
+  return best||{o:3,lo:0,hi:7,sc:999,ki}}
+function melody(n,lo,hi){const S=[1,1,1,1,-1,-1,-1,-1,2,2,-2,-2,3,-3,0],a=[0];let c=0;
+  for(let i=1;i<n-1;i++){let x=c+pick(S);if(x<lo||x>hi)x=c-(x-c);if(x<lo||x>hi)x=c;if(i>=2&&a[i-1]==a[i-2]&&x==c)x=c+(c<hi?1:-1);a.push(x);c=x}
+  const T=(c>=4&&hi>=7)?7:0;
+  if(n>2){let pn=T+(rnd(2)?1:-1);if(pn<lo||pn>hi)pn=T+(pn>T?-1:1);a[n-2]=pn}
+  a.push(T);return a.slice(0,n)}
+function pBuild(){const f=cfg(),song=P.mode=='song',r=+$('#pkey').value,m=+$('#pmode').value,pl=pPlan(r,m,song),ki=pl.ki;let degs=[],durs=[];
+  if(!song){const top=Math.min(7,pl.hi),up=[],dn=[];for(let i=0;i<=top;i++)up.push(i);for(let i=top-1;i>=1;i--)dn.push(i);
+    degs=[...up,...dn,0];durs=[...up.map(()=>'q'),...dn.map(()=>'q'),'h']}
+  else{const len=+$('#plen').value;
+    for(let mm=0;mm<len;mm++){if(mm==len-1){durs.push('w');break}let b=0;
+      while(b<4){const x=Math.random();if(b%2==0&&b<=2&&x<.2){durs.push('h');b+=2}else if(x<.55){durs.push('e','e');b+=1}else{durs.push('q');b+=1}}}
+    degs=melody(durs.length,pl.lo,pl.hi)}
+  let beat=0;P.ki=ki;P.clef=f.clef||'t';
+  P.notes=degs.map((n,i)=>{const sp=spell(ki,pl.o,n),d=durs[i],o={n,dur:d,beat,dia:sp.dia,wr:sp.midi,snd:sp.midi-f.off,name:sp.name};beat+=d=='w'?4:d=='h'?2:d=='q'?1:.5;return o});
+  P.len=Math.ceil(beat/4-1e-6)}
+function pDraw(){const f=cfg(),hint=$('#phint').checked;
+  const st=i=>P.listening?(i==P.cur?'on':''):P.practice?(i<P.idx?'ok':i==P.idx?(P.flash?'bad':'on'):''):(P.done?'ok':'');
+  $('#pstaff').innerHTML=staffSVG({clef:P.clef,ki:P.ki,len:P.len,mpl:2,time:true,labels:hint,alt:'Music to play, '+P.notes.length+' notes',
+    notes:P.notes.map((n,i)=>({...n,state:st(i),lb:hint?fingTxt(n.snd,f,true):''}))})}
+function pMsg(t){$('#pmsg').innerHTML=t}
+function pStatus(){const f=cfg(),n=P.notes[P.idx],hint=$('#phint').checked;
+  if(P.listening)return pMsg('Listening… watch the valves above move.');
+  if(P.practice&&n)return pMsg(`Note <b>${P.idx+1}</b> of ${P.notes.length}: play <b>${n.name}</b>${hint?' · '+fingTxt(n.snd,f):''} · Mistakes: ${P.mis}`);
+  if(P.done){const N_=P.notes.length;return pMsg(`<b>Done.</b> ${N_} notes, ${P.mis} mistake${P.mis==1?'':'s'}, ${Math.round(100*N_/(N_+P.mis))}% accuracy. ${P.mis?'Run it again to clean it up.':'Clean run!'}`)}
+  const ki=P.ki;pMsg(`${fm(ki.names[0])} ${ki.m?'minor':'major'}: ${sig(ki.names)}. Press <b>Listen</b> to hear it, or <b>Practice</b> and play it yourself.`)}
+function pBtns(){const g=$('#pgo'),l=$('#plisten');g.textContent=P.practice?'Stop practice':'Practice';g.setAttribute('aria-pressed',P.practice);l.textContent=P.listening?'Stop':'Listen';l.setAttribute('aria-pressed',P.listening)}
+function pStopListen(){if(!P.listening)return;lTok++;P.listening=false;P.cur=-1;dn.clear();frc=null;fUpd()}
+function pStopAll(){pStopListen();P.practice=false;clearTimeout(jt)}
+function pRebuild(){pStopAll();P.done=false;P.idx=0;P.mis=0;pBuild();pDraw();pStatus();pBtns()}
+function pStart(){pStopAll();P.practice=true;P.done=false;P.idx=0;P.mis=0;P.flash=false;allUp();ref=P.notes[0].snd;frc=null;cx();loadSF(cfg().sf);pDraw();pStatus();pBtns()}
+function pFinish(){P.practice=false;P.done=true;pDraw();pStatus();pBtns()}
+/* called by the sound engine each time a new note starts. The note has to stay put for a moment so a roll from valve 1 to 1+3 does not count as a wrong note. */
+function pAttack(m){if(!P.practice)return;const key=vk;clearTimeout(jt);jt=setTimeout(()=>{if(vk===key&&P.practice)judge(m)},170)}
+function judge(m){const n=P.notes[P.idx],f=cfg();
+  if(m===n.snd){P.idx++;ref=m;P.flash=false;if(P.idx>=P.notes.length)return pFinish();pDraw();pStatus()}
+  else{P.mis++;P.flash=true;pDraw();pMsg(`That was <b>${nm(m+f.off)}</b>. Looking for <b>${n.name}</b>${$('#phint').checked?' · '+fingTxt(n.snd,f):''}. Mistakes: ${P.mis}`);
+    setTimeout(()=>{if(P.practice&&P.flash){P.flash=false;pDraw()}},500)}}
+async function pListen(){if(P.listening){pStopListen();pDraw();pStatus();pBtns();return}
+  pStopAll();const tok=++lTok;P.listening=true;P.cur=-1;allUp();pBtns();pStatus();stat('Loading sound…');
+  const f=cfg(),p=await loadSF(f.sf);stat();if(tok!==lTok)return;
+  const c=cx(),bt=60000/+$('#ptempo').value,t0=performance.now();
+  for(const [i,n] of P.notes.entries()){const w=t0+n.beat*bt-performance.now();if(w>0)await sleep(w);if(tok!==lTok)return;
+    const x=fingerFor(n.snd,f);P.cur=i;
+    if(x){dn.clear();hd.clear();if(isT())pos=x.d+1;else pickCombo(x.d,f).forEach(v=>dn.add(v));ref=n.snd;frc={m:n.snd,i:x.i,d:x.d};pi=x.i;fUpd()}
+    const d=(n.dur=='w'?4:n.dur=='h'?2:n.dur=='q'?1:.5)*bt/1000*.92;
+    if(p)p.play(n.snd,c.currentTime,{duration:d,gain:1.6,adsr:[.03,.1,.85,.2]});else synth(hz(n.snd),c.currentTime,d);
+    pDraw()}
+  await sleep(bt*(P.notes.at(-1).dur=='w'?4:1)*.9);if(tok!==lTok)return;
+  P.listening=false;P.cur=-1;dn.clear();frc=null;fUpd();pDraw();pStatus();pBtns()}
+function pKeys(){const v=$('#pkey').value||0,mn=+$('#pmode').value;$('#pkey').innerHTML=(mn?MIN:MAJ).map((n,i)=>`<option value="${i}">${fm(n)} ${mn?'minor':'major'}</option>`).join('');$('#pkey').value=v}
+function pSync(){const b=FI[fk],f=cfg();
+  $('#pinst').innerHTML=Object.entries(FI).map(([k,x])=>`<option value="${k}"${k==fk?' selected':''}>${x.n}</option>`).join('');
+  $('#pvar').innerHTML=$('#fvar').innerHTML;
+  $('#pnvl').style.display=b.vals?'':'none';$('#pnv').innerHTML=$('#fnv').innerHTML;
+  $('#pstl').style.display=f.v==4?'':'none';$('#pstyle').value=sty;
+  $('#pctl').innerHTML=$('#fctl').innerHTML;
+  $('#phelp').textContent=isT()?'Hold a slide position (tap and hold, or keys 1 to 7) to play. Space or B blows on the current position.':`Hold the valves to play (tap and hold, or keys ${KEYS.slice(0,f.v).join(' ').toUpperCase()}). Press valves together for combinations like 1+3. Space or B blows the open note.`;
+  pRebuild()}
+pKeys();
+$('#ptempo').oninput=()=>$('#ptv').textContent=$('#ptempo').value;
+const pMode=m=>{P.mode=m;$('#pm-scale').setAttribute('aria-pressed',m=='scale');$('#pm-song').setAttribute('aria-pressed',m=='song');
+  $('#plenl').style.display=m=='song'?'':'none';$('#pnew').style.display=m=='song'?'':'none';pRebuild()};
+$('#pm-scale').onclick=e=>{pMode('scale');e.currentTarget.blur()};$('#pm-song').onclick=e=>{pMode('song');e.currentTarget.blur()};
+$('#pmode').onchange=e=>{pKeys();pRebuild();e.target.blur()};
+$('#pkey').onchange=$('#plen').onchange=e=>{pRebuild();e.target.blur()};
+$('#pnew').onclick=e=>{pRebuild();e.currentTarget.blur()};
+$('#pgo').onclick=e=>{if(P.practice){pStopAll();P.done=false;pDraw();pStatus();pBtns()}else pStart();e.currentTarget.blur()};
+$('#plisten').onclick=e=>{cx();pListen();e.currentTarget.blur()};
+$('#phint').onchange=e=>{pDraw();pStatus();e.target.blur()};
 
 /* ----- controls ----- */
-$('#skey').innerHTML=MAJ.map((n,i)=>`<option value="${i}"${i==10?' selected':''}>${fm(n)}</option>`).join('');
-$('#smode').innerHTML=SM.map((x,i)=>`<option value="${i}">${x[0]}</option>`).join('');
-$('#skey').onchange=$('#smode').onchange=e=>{scGrid();e.target.blur()};
-$('#splay').onclick=()=>{cx();playScale()};
 $('#ddl').innerHTML=Object.entries(FI).map(([k,f])=>`<li><button data-k="${k}"><span class="av sm">${f.ab}</span>${f.n}</button></li>`).join('');
 const dd=o=>{$('#ddl').hidden=!o;$('#ddb').setAttribute('aria-expanded',o)};
 $('#ddb').onclick=()=>dd($('#ddl').hidden);
-$('#ddl').onclick=e=>{const b=e.target.closest('button');if(!b)return;allUp();fk=b.dataset.k;vi=0;nv=FI[fk].vals?FI[fk].vals[0]:FI[fk].v;pi=0;pos=1;dd(false);fRender();$('#ddb').focus()};
-$('#fvar').onchange=e=>{allUp();vi=+$('#fvar').value;fRender();e.target.blur()};
-$('#fnv').onchange=e=>{allUp();nv=+$('#fnv').value;fRender();e.target.blur()};
-$('#fstyle').onchange=e=>{sty=+$('#fstyle').value;scGrid();e.target.blur()};
-$('#fauto').onchange=e=>{auto=e.target.checked;frc=null;fUpd();e.target.blur()};
+function setInst(k){allUp();fk=k;vi=0;nv=FI[fk].vals?FI[fk].vals[0]:FI[fk].v;pi=0;pos=1;fRender()}
+$('#ddl').onclick=e=>{const b=e.target.closest('button');if(!b)return;setInst(b.dataset.k);dd(false);$('#ddb').focus()};
+$('#pinst').onchange=e=>{setInst(e.target.value);e.target.blur()};
+['#fvar','#pvar'].forEach(s=>$(s).onchange=e=>{allUp();vi=+e.target.value;fRender();e.target.blur()});
+['#fnv','#pnv'].forEach(s=>$(s).onchange=e=>{allUp();nv=+e.target.value;fRender();e.target.blur()});
+['#fstyle','#pstyle'].forEach(s=>$(s).onchange=e=>{sty=+e.target.value;$('#fstyle').value=$('#pstyle').value=sty;pDraw();pStatus();e.target.blur()});
+['#fauto','#pauto'].forEach(s=>$(s).onchange=e=>{auto=e.target.checked;$('#fauto').checked=$('#pauto').checked=auto;frc=null;fUpd();e.target.blur()});
 document.addEventListener('click',e=>{if(!e.target.closest('.dd'))dd(false)});
-const fc=$('#fctl');
+/* the valves (and slide positions) exist twice, in the Fingering chart and on the Play page, and both work the same way */
+[$('#fctl'),$('#pctl')].forEach(fc=>{
 fc.onpointerdown=e=>{const b=e.target.closest('.vb');if(!b)return;cx();e.preventDefault();if(b.setPointerCapture)b.setPointerCapture(e.pointerId);
   if(b.dataset.pos){pos=+b.dataset.pos;tdn=true}else{if(!hd.size)dn.clear();hd.add(+b.dataset.v);dn.add(+b.dataset.v)}fUpd()};
 fc.onpointerup=fc.onpointercancel=e=>{const b=e.target.closest('.vb');if(!b)return;
   if(b.dataset.v){hd.delete(+b.dataset.v);dn.delete(+b.dataset.v)}else tdn=false;fUpd()};
 fc.onclick=e=>{if(e.detail)return;const b=e.target.closest('.vb');if(!b)return;cx();/* keyboard activation (Enter or Space on a focused button) */
   if(b.dataset.pos){pos=+b.dataset.pos;tdn=true;fUpd();setTimeout(()=>{tdn=false;fUpd()},900)}
-  else{const v=+b.dataset.v;if(hd.has(v)){hd.delete(v);dn.delete(v)}else{hd.add(v);dn.add(v)}fUpd()}};
+  else{const v=+b.dataset.v;if(hd.has(v)){hd.delete(v);dn.delete(v)}else{hd.add(v);dn.add(v)}fUpd()}}});
 $('#fchart').onclick=e=>{const b=e.target.closest('.fc');if(!b)return;cx();const k=+b.dataset.d,f=cfg(),m=f.p[pi]-k;
   dn.clear();hd.clear();if(isT())pos=k+1;else pickCombo(k,f).forEach(v=>dn.add(v));
   ref=m;frc={m,i:pi,d:k};
   tap=true;clearTimeout(tapT);tapT=setTimeout(()=>{tap=false;fUpd()},1200);fUpd()};
-const bt=$('#breath');
+[$('#breath'),$('#pbreath')].forEach(bt=>{
 bt.onpointerdown=e=>{cx();e.preventDefault();if(bt.setPointerCapture)bt.setPointerCapture(e.pointerId);br=true;fUpd()};
 bt.onpointerup=bt.onpointercancel=()=>{br=false;fUpd()};
-bt.onclick=e=>{if(e.detail)return;cx();br=true;fUpd();setTimeout(()=>{br=false;fUpd()},900)};
+bt.onclick=e=>{if(e.detail)return;cx();br=true;fUpd();setTimeout(()=>{br=false;fUpd()},900)}});
 $('#rdn').onclick=()=>reg(-1);$('#rup').onclick=()=>reg(1);
-new IntersectionObserver(([x])=>{fview=x.isIntersecting;if(fview&&!pre){pre=true;preload()}if(!fview)allUp()},{threshold:.25}).observe($('#fingerings'));
+const vis=new Set();
+const io=new IntersectionObserver(es=>{es.forEach(x=>{x.isIntersecting?vis.add(x.target.id):vis.delete(x.target.id)});
+  fview=vis.size>0;if(fview&&!pre){pre=true;preload()}if(!fview)allUp()},{threshold:.15});
+io.observe($('#fingerings'));io.observe($('#playpage'));
 window.addEventListener('blur',allUp);
 document.addEventListener('visibilitychange',()=>{if(document.hidden)allUp()});
 const typing=e=>{const t=e.target;return t.isContentEditable||/TEXTAREA|SELECT/.test(t.tagName)||(t.tagName=='INPUT'&&/text|search|email|number/.test(t.type||'text'))};
@@ -313,6 +423,46 @@ $('#quiz').onclick=e=>{const b=e.target.closest('button');if(!b)return;
   $$('.opt').forEach(x=>{x.disabled=true;if(q.o[+x.dataset.i]==q.a)x.classList.add('good');else if(x===b)x.classList.add('bad')});
   $('#fb').dataset.done=1;$('#fb').innerHTML=`<b>${ok?'Correct.':'Not quite.'}</b> ${fm(q.w)} <button class="btn" id="next">${qn+1<qs.length?'Next':'See score'}</button>`;$('#next').focus()};
 qstart();qf=true;
+
+/* ---------- Sight-reading quiz ---------- */
+const SQM=['C','G','D','A','E','F','Bb','Eb','Ab','Db'].map(x=>MAJ.indexOf(x)),SQN=[9,4,11,6,2,7,0,5,10];/* major keys, and minor keys, to ask about */
+const LN='CDEFGAB',sqName=(l,a)=>LN[l]+(a>0?'♯':a<0?'♭':'');
+const MNEM={t:'Treble clef lines are E G B D F (Every Good Boy Does Fine) and the spaces spell FACE.',b:'Bass clef lines are G B D F A (Good Boys Do Fine Always) and the spaces are A C E G (All Cows Eat Grass).'};
+const sqSvg=(clef,ki,dia,alt)=>`<div class="stfq">${staffSVG({clef,ki,len:1,mpl:1,mw:110,time:false,alt,notes:dia==null?[]:[{dur:'w',beat:0,dia,state:'on'}]})}</div>`;
+function sqKey(){const mn=rnd(10)<3,r=mn?pick(SQN):pick(SQM),ki=keyInfo(r,+mn);return{ki,mn,r}}
+function sqNote(){const cl=$('#sqclef').value,clef=cl=='m'?(cfg().clef||'t'):cl=='x'?pick(['t','b']):cl,bd=clef=='b'?18:30,{ki,mn}=sqKey(),
+    dia=bd-3+rnd(15),l=((dia%7)+7)%7,ka=ki.sp.find(s=>s.l==l).a,a0=sqName(l,ka);
+  const pool=new Set([sqName((l+1)%7,ki.sp.find(s=>s.l==(l+1)%7).a),sqName((l+6)%7,ki.sp.find(s=>s.l==(l+6)%7).a),sqName((l+2)%7,ki.sp.find(s=>s.l==(l+2)%7).a),ka?sqName(l,0):sqName(l,rnd(2)?1:-1)]);
+  pool.delete(a0);const o=shuf([...pool]).slice(0,3);while(o.length<3){const x=sqName(rnd(7),0);if(x!=a0&&!o.includes(x))o.push(x)}
+  return{svg:sqSvg(clef,ki,dia,'Note to name'),q:ki.n?'What note is this? Read the key signature.':'What note is this?',a:a0,o:shuf([a0,...o]),
+    w:`${MNEM[clef]} ${ka?`In ${fm(ki.names[0])} ${mn?'minor':'major'} the key signature (${sig(ki.names)}) makes it ${a0}.`:`This note is ${a0}.`}`}}
+function sqKeyQ(){const {ki,mn}=sqKey(),clef=pick(['t','b']),right=fm(ki.names[0])+(mn?' minor':' major'),o=new Set();
+  while(o.size<3){const k=mn?pick(SQN):pick(SQM),t=fm((mn?MIN:MAJ)[k])+(mn?' minor':' major');if(t!=right)o.add(t)}
+  return{svg:sqSvg(clef,ki,null,'Key signature'),q:`Which ${mn?'minor':'major'} key has this key signature?`,a:right,o:shuf([right,...o]),
+    w:`${right}: ${sig(ki.names)}.${mn?' A minor key shares its signature with the major key a minor 3rd above it.':''}`}}
+function sqFing(){const f=cfg(),{ki}=sqKey(),r=pick(SQM),pl=pPlan(r,0,true),k2=keyInfo(r,0),n=pl.lo+rnd(pl.hi-pl.lo+1),sp=spell(k2,pl.o,n),snd=sp.midi-f.off,x=fingerFor(snd,f);
+  if(!x)return sqNote();
+  const gap=gapOf(f,x.i),txt=d=>isT()?'position '+(d+1):fmtC(combos(d,f)[0],'+'),a=txt(x.d),o=new Set();
+  for(const d of shuf(Array.from({length:gap},(_,i)=>i)))if(d!=x.d&&o.size<3)o.add(txt(d));
+  if(o.size<3)return sqNote();
+  return{svg:sqSvg(f.clef||'t',k2,sp.dia,'Note to finger'),q:`Which ${isT()?'slide position':'fingering'} plays this note on your ${f.l.toLowerCase()}?`,a,o:shuf([a,...o]),
+    w:`${sp.name} on your ${f.l.toLowerCase()} is ${fingTxt(snd,f)}.${f.off?' The staff shows the written note, not the concert pitch.':''}`}}
+const sqOne=()=>pick([sqNote,sqNote,sqNote,sqKeyQ,sqKeyQ,sqFing])();
+let sqs,sqn,sqsc,sqbest=+ls('mb-sbest')||0,sqf=false;
+function sqstart(){sqs=Array.from({length:10},sqOne);sqn=0;sqsc=0;$('#sqnote').textContent='Fingering questions use your instrument: '+cfg().l+'. Change it in the Fingering chart or on the Play page.';sqshow()}
+function sqshow(){const q=sqs[sqn],z=$('#sq');
+  if(!q){if(sqsc>sqbest){sqbest=sqsc;ls('mb-sbest',sqsc)}
+    z.innerHTML=`<h3 class="hand big" id="sqq" tabindex="-1">You scored ${sqsc} / ${sqs.length}</h3><p>${sqsc==10?'Perfect score.':sqsc>6?'Nice reading. Another round will lock it in.':'Keep going. Read the hints and try another round.'} Best score: ${sqbest}.</p><button class="btn" id="sagain" style="margin-top:12px">Play again</button>`;if(sqf)$('#sqq').focus();return}
+  z.innerHTML=`<div class="bar"><i style="width:${sqn/sqs.length*100}%"></i></div><p class="mut">Question ${sqn+1} of ${sqs.length} · Score ${sqsc}</p>${q.svg}<h3 class="hand big" id="sqq" tabindex="-1">${q.q}</h3><div class="opts">${q.o.map((o,i)=>`<button class="opt" data-i="${i}">${o}</button>`).join('')}</div><p id="sfb" role="status"></p>`;if(sqf)$('#sqq').focus()}
+$('#sq').onclick=e=>{const b=e.target.closest('button');if(!b)return;
+  if(b.id=='sagain')return sqstart();if(b.id=='snext'){sqn++;return sqshow()}
+  if(!b.dataset.i||$('#sfb').dataset.done)return;
+  const q=sqs[sqn],ok=q.o[+b.dataset.i]==q.a;if(ok)sqsc++;
+  $$('#sq .opt').forEach(x=>{x.disabled=true;if(q.o[+x.dataset.i]==q.a)x.classList.add('good');else if(x===b)x.classList.add('bad')});
+  $('#sfb').dataset.done=1;$('#sfb').innerHTML=`<b>${ok?'Correct.':'Not quite.'}</b> ${q.w} <button class="btn" id="snext">${sqn+1<sqs.length?'Next':'See score'}</button>`;$('#snext').focus()};
+$('#sqclef').onchange=e=>{sqstart();e.target.blur()};
+sqstart();sqf=true;
+
 
 /* ---------- Metronome & tuning tones ---------- */
 let mt=0;

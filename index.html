@@ -10,7 +10,7 @@
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600;700;800&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@500;600;700;800&family=Source+Sans+3:wght@400;500;600;700&display=swap">
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -20,6 +20,7 @@
 <symbol id="i-valve" viewBox="0 0 24 24"><path d="M6 3v7M12 3v7M18 3v7"/><circle cx="6" cy="15" r="3"/><circle cx="12" cy="15" r="3"/><circle cx="18" cy="15" r="3"/></symbol>
 <symbol id="i-quiz" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.4-1 .9-1 1.7M12 17h.01"/></symbol>
 <symbol id="i-cards" viewBox="0 0 24 24"><rect x="3" y="8" width="14" height="12" rx="2"/><path d="M7 8V6a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/></symbol>
+<symbol id="i-play" viewBox="0 0 24 24"><path d="M9 18V6l11-2v12"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="17.5" cy="16" r="2.5"/></symbol>
 <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l3 2M9 3h6"/></symbol></svg>
 <a class="skip" href="#guides">Skip to content</a>
 <header class="top"><a class="brand" href="#top" aria-label="Music Buddy Theory, home"><img class="lm" src="logo-mark.svg" width="34" height="34" alt=""><div class="wm"><b>MUSIC BUDDY</b><i>THEORY</i></div></a></header>
@@ -28,6 +29,7 @@
 <a href="#guides"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-guide"/></svg><span>Guides</span></a>
 <a href="#scales"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-keys"/></svg><span>Scales</span></a>
 <a href="#fingerings"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-valve"/></svg><span>Fingerings</span></a>
+<a href="#playpage"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-play"/></svg><span>Play</span></a>
 <a href="#theory"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-quiz"/></svg><span>Quiz</span></a>
 <a href="#tools"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-clock"/></svg><span>Tools</span></a>
 </nav>
@@ -76,11 +78,34 @@
     <div class="reg"><button class="btn alt" id="rdn" aria-label="Lower register">−</button><span id="rg"></span><button class="btn alt" id="rup" aria-label="Higher register">+</button></div>
     <p class="mut" id="fhint" style="text-align:center"></p>
     <div class="fchart" id="fchart"></div>
-    <div class="box" id="scbox" style="margin-top:22px"><b>Play a scale</b>
-      <p class="mut">See the fingering for every note and hear it played. Alternate fingerings show side by side, like 4 / 1·3.</p>
-      <div class="row end" style="margin-top:12px"><label>Key (as you read it)<select id="skey"></select></label><label>Scale<select id="smode"></select></label></div>
-      <div class="fchart" id="sgrid"></div>
-      <button class="btn" id="splay" style="margin-top:14px">Play the scale</button>
+  </div>
+</article>
+
+<article class="post play" id="playpage">
+  <header class="ph"><span class="av sm"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-play"/></svg></span><div><b>Play music</b><span class="s">Practice scales and sight-read random songs on your instrument</span></div></header>
+  <div class="pad">
+    <div class="seg" role="group" aria-label="What to practice"><button class="btn" id="pm-scale" aria-pressed="true">Scale</button><button class="btn" id="pm-song" aria-pressed="false">Random song</button></div>
+    <div class="row end" style="margin-top:16px">
+      <label>Instrument<select id="pinst"></select></label>
+      <label>Type / key<select id="pvar"></select></label>
+      <label id="pnvl">Valves<select id="pnv"></select></label>
+      <label id="pstl">4th valve<select id="pstyle"><option value="0">Standard (use 4)</option><option value="1">Use 1+3 instead of 4</option></select></label>
+    </div>
+    <div class="row end" style="margin-top:12px">
+      <label>Key (as you read it)<select id="pkey"></select></label>
+      <label>Scale type<select id="pmode"><option value="0">Major</option><option value="1">Natural minor</option></select></label>
+      <label id="plenl" style="display:none">Length<select id="plen"><option value="4">4 measures</option><option value="8">8 measures</option></select></label>
+      <label>Listen tempo: <output id="ptv">80</output> BPM<input id="ptempo" type="range" min="40" max="140" value="80"></label>
+    </div>
+    <div class="staffbox"><div id="pstaff"></div></div>
+    <p id="pmsg" role="status"></p>
+    <div class="row" style="margin-top:12px"><button class="btn" id="pgo" aria-pressed="false">Practice</button><button class="btn alt" id="plisten" aria-pressed="false">Listen</button><button class="btn alt" id="pnew" style="display:none">New song</button><label class="chk" style="margin:0 0 0 6px"><input type="checkbox" id="phint">Show fingerings</label></div>
+    <div class="playpad">
+      <div class="fctl" id="pctl"></div>
+      <div class="read"><div id="pn" aria-live="off"></div><div class="mut" id="ps"></div></div>
+      <div class="row" style="justify-content:center;margin-top:10px"><button class="btn" id="pbreath" aria-pressed="false">Hold to play</button></div>
+      <div class="row" style="justify-content:center"><label class="chk"><input type="checkbox" id="pauto" checked>Auto register</label></div>
+      <p class="mut" id="phelp" style="text-align:center"></p>
     </div>
   </div>
 </article>
@@ -93,6 +118,15 @@
 <article class="post" id="theory">
   <header class="ph"><span class="av sm"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-quiz"/></svg></span><div><b>Practice quiz</b><span class="s">Ten new questions each round</span></div></header>
   <div class="pad"><div id="quiz" class="box"></div></div>
+</article>
+
+<article class="post" id="sight">
+  <header class="ph"><span class="av sm"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-quiz"/></svg></span><div><b>Sight-reading quiz</b><span class="s">Name the note, the key signature or the fingering</span></div></header>
+  <div class="pad">
+    <label style="max-width:260px">Clef<select id="sqclef"><option value="m">Match my instrument</option><option value="t">Treble</option><option value="b">Bass</option><option value="x">Both</option></select></label>
+    <p class="mut" id="sqnote"></p>
+    <div id="sq" class="box" style="margin-top:14px"></div>
+  </div>
 </article>
 
 <article class="post" id="tools">

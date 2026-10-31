@@ -1,6 +1,7 @@
-// Mel's AI brain. Paste your Worker URL between the quotes (see README, "Make Mel a real AI chatbot").
-// Leave it empty and Mel still works with built-in answers and the teach-me notebook.
-const MEL_API='';
+window.MB_VER=4;
+// Mel's AI brain. The Worker URL lives in config.js (see README, "Make Mel a real AI chatbot"), so updating this file never disconnects it.
+// Left empty, Mel still works with the built-in answers in brain.js and the teach-me notebook.
+const MEL_API=(window.MEL_API||'').trim();
 
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const fm=s=>s.replace(/([A-G])#/g,'$1♯').replace(/([A-G])b(?![a-z])/g,'$1♭');
@@ -239,7 +240,7 @@ function staffSVG(o){
   return `<svg class="stf" viewBox="0 0 ${W} ${H}" role="img" aria-label="${o.alt||'Music staff'}">${s}</svg>`}
 
 /* ---------- Play page: scales and random songs ---------- */
-const P={mode:'scale',notes:[],ki:null,clef:'t',len:4,idx:0,mis:0,practice:false,listening:false,cur:-1,flash:false,done:false};
+const P={mode:'scale',stage:'find',deck:[],di:0,song:null,notes:[],ki:null,clef:'t',len:4,idx:0,mis:0,practice:false,listening:false,cur:-1,flash:false,done:false};
 let lTok=0,jt=0;
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const fingTxt=(m,f,short)=>{const x=fingerFor(m,f);if(!x)return short?'–':'out of range';
@@ -253,44 +254,74 @@ function pPlan(r,m,song){const f=cfg(),ki=keyInfo(r,m),tgt=(f.p[0]+f.p[Math.min(
     const sc=Math.abs(spell(ki,o,0).midi-f.off-tgt)+((song?hi-lo>=6:hi>=7)?0:100);
     if(!best||sc<best.sc)best={o,lo,hi:song?Math.min(hi,lo+10):hi,sc,ki}}
   return best||{o:3,lo:0,hi:7,sc:999,ki}}
-function melody(n,lo,hi){const S=[1,1,1,1,-1,-1,-1,-1,2,2,-2,-2,3,-3,0],a=[0];let c=0;
+function melody(n,lo,hi,S0){const S=S0||[1,1,1,1,-1,-1,-1,-1,2,2,-2,-2,3,-3,0],a=[0];let c=0;
   for(let i=1;i<n-1;i++){let x=c+pick(S);if(x<lo||x>hi)x=c-(x-c);if(x<lo||x>hi)x=c;if(i>=2&&a[i-1]==a[i-2]&&x==c)x=c+(c<hi?1:-1);a.push(x);c=x}
   const T=(c>=4&&hi>=7)?7:0;
   if(n>2){let pn=T+(rnd(2)?1:-1);if(pn<lo||pn>hi)pn=T+(pn>T?-1:1);a[n-2]=pn}
   a.push(T);return a.slice(0,n)}
-function pBuild(){const f=cfg(),song=P.mode=='song',r=+$('#pkey').value,m=+$('#pmode').value,pl=pPlan(r,m,song),ki=pl.ki;let degs=[],durs=[];
+const ADJ=['Sunny','Midnight','Golden','Quiet','Bouncy','Stormy','Lazy','Brave','Crimson','Marching','Dusty','Silver','Sleepy','Wild','Gentle','Rusty','Cosmic','Cheerful','Windy','Secret'];
+const NOUN=['River','Parade','Echo','Lantern','Hallway','Sunrise','Rocket','Meadow','Harbor','Carousel','Canyon','Whistle','Lighthouse','Caravan','Trail','Fiddle','Puddle','Comet','Bridge','Orchard'];
+/* each style changes how often notes are long or split into eighths, how far the melody jumps, and the speed */
+const STY=[{n:'Steady',h:.3,e:.15,st:[1,1,1,1,-1,-1,-1,-1,2,-2,0],b:[70,92]},{n:'Bouncy',h:.1,e:.6,st:[1,1,-1,-1,2,2,-2,-2,3,-3],b:[92,120]},
+  {n:'Flowing',h:.15,e:.45,st:[1,1,1,1,1,-1,-1,-1,-1,-1,2,-2],b:[80,104]},{n:'Leapy',h:.2,e:.3,st:[2,2,-2,-2,3,3,-3,-3,1,-1,4,-4],b:[76,100]},
+  {n:'Lullaby',h:.45,e:.1,st:[1,1,1,-1,-1,-1,2,-2,0],b:[56,72]},{n:'March',h:.25,e:.1,st:[1,-1,2,-2,0,0,1,-1],b:[100,116]}];
+function mkPiece(r,m,song,o={}){const f=cfg(),pl=pPlan(r,m,song),ki=pl.ki;let degs=[],durs=[];
   if(!song){const top=Math.min(7,pl.hi),up=[],dn=[];for(let i=0;i<=top;i++)up.push(i);for(let i=top-1;i>=1;i--)dn.push(i);
     degs=[...up,...dn,0];durs=[...up.map(()=>'q'),...dn.map(()=>'q'),'h']}
-  else{const len=+$('#plen').value;
+  else{const len=+$('#plen').value,H=o.h??.2,E=o.e??.45;
     for(let mm=0;mm<len;mm++){if(mm==len-1){durs.push('w');break}let b=0;
-      while(b<4){const x=Math.random();if(b%2==0&&b<=2&&x<.2){durs.push('h');b+=2}else if(x<.55){durs.push('e','e');b+=1}else{durs.push('q');b+=1}}}
-    degs=melody(durs.length,pl.lo,pl.hi)}
-  let beat=0;P.ki=ki;P.clef=f.clef||'t';
-  P.notes=degs.map((n,i)=>{const sp=spell(ki,pl.o,n),d=durs[i],o={n,dur:d,beat,dia:sp.dia,wr:sp.midi,snd:sp.midi-f.off,name:sp.name};beat+=d=='w'?4:d=='h'?2:d=='q'?1:.5;return o});
-  P.len=Math.ceil(beat/4-1e-6)}
-function pDraw(){const f=cfg(),hint=$('#phint').checked;
-  const st=i=>P.listening?(i==P.cur?'on':''):P.practice?(i<P.idx?'ok':i==P.idx?(P.flash?'bad':'on'):''):(P.done?'ok':'');
-  $('#pstaff').innerHTML=staffSVG({clef:P.clef,ki:P.ki,len:P.len,mpl:2,time:true,labels:hint,alt:'Music to play, '+P.notes.length+' notes',
-    notes:P.notes.map((n,i)=>({...n,state:st(i),lb:hint?fingTxt(n.snd,f,true):''}))})}
+      while(b<4){if(b%2==0&&b<=2&&Math.random()<H){durs.push('h');b+=2}else if(Math.random()<E){durs.push('e','e');b+=1}else{durs.push('q');b+=1}}}
+    degs=melody(durs.length,pl.lo,pl.hi,o.st)}
+  let beat=0;
+  const notes=degs.map((n,i)=>{const sp=spell(ki,pl.o,n),d=durs[i],x={n,dur:d,beat,dia:sp.dia,wr:sp.midi,snd:sp.midi-f.off,name:sp.name,miss:0};beat+=d=='w'?4:d=='h'?2:d=='q'?1:.5;return x});
+  return{ki,clef:f.clef||'t',notes,len:Math.ceil(beat/4-1e-6),pl}}
+const pSet=pc=>{P.ki=pc.ki;P.clef=pc.clef;P.notes=pc.notes;P.len=pc.len};
+const pBuild=()=>pSet(mkPiece(+$('#pkey').value,+$('#pmode').value,false));
+/* a batch of 12 different songs: random key, style, tempo and name, all playable on the chosen instrument */
+function genDeck(){const out=[],names=new Set();
+  for(const strict of [true,false]){let guard=0;
+    while(out.length<12&&guard++<400){const m=rnd(4)==0?1:0,r=rnd(12);if(strict&&keyInfo(r,m).n>4)continue;const pl=pPlan(r,m,true);if(pl.sc>=100)continue;
+      const st=pick(STY),pc=mkPiece(r,m,true,st);let nm_,t=0;do{nm_=pick(ADJ)+' '+pick(NOUN)}while(names.has(nm_)&&t++<50);names.add(nm_);
+      out.push({name:nm_,pc,bpm:st.b[0]+rnd(st.b[1]-st.b[0]+1),style:st.n,key:fm(pc.ki.names[0])+(m?' minor':' major')})}
+    if(out.length>=6)break}
+  return out}
+const show=(el,on)=>{el.style.display=on?'':'none'};
+function pUI(){const sc=P.mode=='scale',st=P.stage;
+  show($('#pkl'),sc);show($('#pml'),sc);show($('#plenl'),!sc);
+  show($('#pfind'),!sc&&st=='find');show($('#pdeck'),!sc&&st=='browse');
+  show($('#pbox'),sc||st!='find');show($('#pacts'),sc||st=='play');show($('#pnew'),!sc&&st=='play');
+  show($('#plegend'),(sc||st=='play')&&P.notes.length>0)}
+function pDraw(){const f=cfg(),hint=$('#phint').checked,N_=P.notes;
+  /* green = played right the first time, red = missed at least once. Once a note is passed it keeps its color. */
+  const st=i=>P.listening?(i==P.cur?'on':''):P.practice?(i<P.idx?(N_[i].miss?'bad':'ok'):i==P.idx?((P.flash||N_[i].miss)?'bad':'on'):''):(P.done?(N_[i].miss?'bad':'ok'):'');
+  $('#pstaff').innerHTML=staffSVG({clef:P.clef,ki:P.ki,len:P.len||4,mpl:2,time:true,labels:hint,alt:'Music to play, '+N_.length+' notes',
+    notes:N_.map((n,i)=>({...n,state:st(i),lb:hint?fingTxt(n.snd,f,true):''}))})}
 function pMsg(t){$('#pmsg').innerHTML=t}
 function pStatus(){const f=cfg(),n=P.notes[P.idx],hint=$('#phint').checked;
-  if(P.listening)return pMsg('Listening… watch the valves above move.');
-  if(P.practice&&n)return pMsg(`Note <b>${P.idx+1}</b> of ${P.notes.length}: play <b>${n.name}</b>${hint?' · '+fingTxt(n.snd,f):''} · Mistakes: ${P.mis}`);
-  if(P.done){const N_=P.notes.length;return pMsg(`<b>Done.</b> ${N_} notes, ${P.mis} mistake${P.mis==1?'':'s'}, ${Math.round(100*N_/(N_+P.mis))}% accuracy. ${P.mis?'Run it again to clean it up.':'Clean run!'}`)}
+  if(P.listening)return pMsg('Listening… watch the valves below move.');
+  if(P.practice&&n)return pMsg(`Note <b>${P.idx+1}</b> of ${P.notes.length}: play <b>${n.name}</b>${hint?' · '+fingTxt(n.snd,f):''} · Misses: ${P.mis}`);
+  if(P.done){const N_=P.notes.length,g=P.notes.filter(x=>!x.miss).length;return pMsg(`<b>Done.</b> ${g} of ${N_} notes right on the first try (${Math.round(100*g/N_)}%). ${g==N_?'Clean run!':'The red notes are the ones to work on. Press Practice to go again.'}`)}
+  if(P.mode=='song'){
+    if(P.stage=='find')return pMsg('Tap <b>Find me a song</b> and I will line up 12 random songs for you to hear.');
+    if(P.stage=='browse')return pMsg('Skip the ones you do not like. When one grabs you, tap <b>Play this one</b>.');
+    return pMsg(`<b>${P.song.name}</b> · ${P.song.key}. Press <b>Practice</b> to play it, or <b>Listen</b> to hear it again.`)}
   const ki=P.ki;pMsg(`${fm(ki.names[0])} ${ki.m?'minor':'major'}: ${sig(ki.names)}. Press <b>Listen</b> to hear it, or <b>Practice</b> and play it yourself.`)}
-function pBtns(){const g=$('#pgo'),l=$('#plisten');g.textContent=P.practice?'Stop practice':'Practice';g.setAttribute('aria-pressed',P.practice);l.textContent=P.listening?'Stop':'Listen';l.setAttribute('aria-pressed',P.listening)}
+function pBtns(){const g=$('#pgo'),l=$('#plisten');g.textContent=P.practice?'Stop practice':'Practice';g.setAttribute('aria-pressed',P.practice);l.textContent=P.listening?'Stop':'Listen';l.setAttribute('aria-pressed',P.listening);$('#dback').disabled=P.di<=0}
 function pStopListen(){if(!P.listening)return;lTok++;P.listening=false;P.cur=-1;dn.clear();frc=null;fUpd()}
 function pStopAll(){pStopListen();P.practice=false;clearTimeout(jt)}
-function pRebuild(){pStopAll();P.done=false;P.idx=0;P.mis=0;pBuild();pDraw();pStatus();pBtns()}
-function pStart(){pStopAll();P.practice=true;P.done=false;P.idx=0;P.mis=0;P.flash=false;allUp();ref=P.notes[0].snd;frc=null;cx();loadSF(cfg().sf);pDraw();pStatus();pBtns()}
+function pRebuild(){pStopAll();P.done=false;P.idx=0;P.mis=0;
+  if(P.mode=='scale')pBuild();else{P.deck=[];P.di=0;P.stage='find';P.song=null;P.notes=[]}
+  pUI();pDraw();pStatus();pBtns()}
+function pStart(){if(!P.notes.length)return;pStopAll();P.practice=true;P.done=false;P.idx=0;P.mis=0;P.flash=false;P.notes.forEach(n=>n.miss=0);allUp();ref=P.notes[0].snd;frc=null;cx();loadSF(cfg().sf);pUI();pDraw();pStatus();pBtns()}
 function pFinish(){P.practice=false;P.done=true;pDraw();pStatus();pBtns()}
 /* called by the sound engine each time a new note starts. The note has to stay put for a moment so a roll from valve 1 to 1+3 does not count as a wrong note. */
 function pAttack(m){if(!P.practice)return;const key=vk;clearTimeout(jt);jt=setTimeout(()=>{if(vk===key&&P.practice)judge(m)},170)}
 function judge(m){const n=P.notes[P.idx],f=cfg();
   if(m===n.snd){P.idx++;ref=m;P.flash=false;if(P.idx>=P.notes.length)return pFinish();pDraw();pStatus()}
-  else{P.mis++;P.flash=true;pDraw();pMsg(`That was <b>${nm(m+f.off)}</b>. Looking for <b>${n.name}</b>${$('#phint').checked?' · '+fingTxt(n.snd,f):''}. Mistakes: ${P.mis}`);
+  else{P.mis++;n.miss=(n.miss||0)+1;P.flash=true;pDraw();pMsg(`That was <b>${nm(m+f.off)}</b>. Looking for <b>${n.name}</b>${$('#phint').checked?' · '+fingTxt(n.snd,f):''}. Misses: ${P.mis}`);
     setTimeout(()=>{if(P.practice&&P.flash){P.flash=false;pDraw()}},500)}}
 async function pListen(){if(P.listening){pStopListen();pDraw();pStatus();pBtns();return}
+  if(!P.notes.length)return;
   pStopAll();const tok=++lTok;P.listening=true;P.cur=-1;allUp();pBtns();pStatus();stat('Loading sound…');
   const f=cfg(),p=await loadSF(f.sf);stat();if(tok!==lTok)return;
   const c=cx(),bt=60000/+$('#ptempo').value,t0=performance.now();
@@ -302,6 +333,12 @@ async function pListen(){if(P.listening){pStopListen();pDraw();pStatus();pBtns()
     pDraw()}
   await sleep(bt*(P.notes.at(-1).dur=='w'?4:1)*.9);if(tok!==lTok)return;
   P.listening=false;P.cur=-1;dn.clear();frc=null;fUpd();pDraw();pStatus();pBtns()}
+/* ----- the song picker: browse a batch of songs, skip, then play the one you like ----- */
+function showSong(i,auto){pStopAll();P.di=i;const s=P.deck[i];P.song=s;pSet(s.pc);
+  $('#ptempo').value=s.bpm;$('#ptv').textContent=s.bpm;
+  $('#dcount').textContent=`Song ${i+1} of ${P.deck.length}`;$('#dname').textContent=s.name;$('#dmeta').textContent=`${s.key} · ${s.style} · ${s.bpm} BPM`;
+  P.idx=0;P.mis=0;P.done=false;pUI();pDraw();pStatus();pBtns();if(auto)pListen()}
+function newBatch(){P.deck=genDeck();if(!P.deck.length){pMsg('This instrument cannot play random songs right now. Try another type or key.');return false}P.stage='browse';return true}
 function pKeys(){const v=$('#pkey').value||0,mn=+$('#pmode').value;$('#pkey').innerHTML=(mn?MIN:MAJ).map((n,i)=>`<option value="${i}">${fm(n)} ${mn?'minor':'major'}</option>`).join('');$('#pkey').value=v}
 function pSync(){const b=FI[fk],f=cfg();
   $('#pinst').innerHTML=Object.entries(FI).map(([k,x])=>`<option value="${k}"${k==fk?' selected':''}>${x.n}</option>`).join('');
@@ -313,12 +350,16 @@ function pSync(){const b=FI[fk],f=cfg();
   pRebuild()}
 pKeys();
 $('#ptempo').oninput=()=>$('#ptv').textContent=$('#ptempo').value;
-const pMode=m=>{P.mode=m;$('#pm-scale').setAttribute('aria-pressed',m=='scale');$('#pm-song').setAttribute('aria-pressed',m=='song');
-  $('#plenl').style.display=m=='song'?'':'none';$('#pnew').style.display=m=='song'?'':'none';pRebuild()};
+const pMode=m=>{P.mode=m;$('#pm-scale').setAttribute('aria-pressed',m=='scale');$('#pm-song').setAttribute('aria-pressed',m=='song');pRebuild()};
 $('#pm-scale').onclick=e=>{pMode('scale');e.currentTarget.blur()};$('#pm-song').onclick=e=>{pMode('song');e.currentTarget.blur()};
 $('#pmode').onchange=e=>{pKeys();pRebuild();e.target.blur()};
 $('#pkey').onchange=$('#plen').onchange=e=>{pRebuild();e.target.blur()};
-$('#pnew').onclick=e=>{pRebuild();e.currentTarget.blur()};
+$('#dfind').onclick=e=>{cx();if(newBatch())showSong(0,true);e.currentTarget.blur()};
+$('#dskip').onclick=e=>{cx();if(P.di+1>=P.deck.length){if(newBatch())showSong(0,true)}else showSong(P.di+1,true);e.currentTarget.blur()};
+$('#dback').onclick=e=>{cx();if(P.di>0)showSong(P.di-1,true);e.currentTarget.blur()};
+$('#dreplay').onclick=e=>{cx();pStopListen();pListen();e.currentTarget.blur()};
+$('#dpick').onclick=e=>{cx();pStopAll();P.stage='play';pStart();e.currentTarget.blur()};
+$('#pnew').onclick=e=>{cx();pStopAll();P.done=false;P.stage='browse';showSong(P.di,true);e.currentTarget.blur()};
 $('#pgo').onclick=e=>{if(P.practice){pStopAll();P.done=false;pDraw();pStatus();pBtns()}else pStart();e.currentTarget.blur()};
 $('#plisten').onclick=e=>{cx();pListen();e.currentTarget.blur()};
 $('#phint').onchange=e=>{pDraw();pStatus();e.target.blur()};
@@ -487,6 +528,57 @@ $('#drone').onclick=e=>{const b=e.target.closest('button');if(!b)return;const wa
 $('#tsnd').onchange=e=>{const had=$('#drone button[aria-pressed=true]');dStop();if(had)dStart();else{const d=DS[+$('#tsnd').value];if(d[1]){cx();loadSF(d[1])}}e.target.blur()};
 
 /* ---------- Maestro Mel ---------- */
+/* ---------- Mel's calculator: works answers out instead of looking them up ---------- */
+const FO='FCGDAEB',FL='BEADGCF',LT='CDEFGAB',PCL={C:0,D:2,E:4,F:5,G:7,A:9,B:11},acS=n=>n>0?'♯'.repeat(n):n<0?'♭'.repeat(-n):'',nn=(l,a)=>LT[l]+acS(a);
+function parseNotes(t){const out=[],re=/\b([A-Ga-g])(#|♯|b(?![a-z])|♭|\s?sharp\b|\s?flat\b)?/g;let m;
+  while((m=re.exec(t))){const end=m.index+m[0].length,ac=(m[2]||'').trim();
+    if(/[a-z]/i.test(t[end]||''))continue;
+    if(!ac&&m[1]=='a'&&!/^\s+(major|minor)/i.test(t.slice(end)))continue;
+    out.push({l:LT.indexOf(m[1].toUpperCase()),a:ac?(/^(#|♯|sharp)$/i.test(ac)?1:-1):0,at:m.index,end})}
+  return out}
+const ksN=(l,a,mn)=>FO.indexOf(LT[l])-1+7*a-(mn?3:0);
+const ksAcc=(L,n)=>n>0?(FO.indexOf(LT[L])<n?1:0):n<0?(FL.indexOf(LT[L])<-n?-1:0):0;
+const ksList=n=>n>0?FO.slice(0,n).split('').map(x=>x+'♯').join(' '):FL.slice(0,-n).split('').map(x=>x+'♭').join(' ');
+const INSTW=/^\s*(clarinet|trumpet|cornet|sax|saxophone|horn|flugel|instrument|tuba|euph|trombone)/i;
+function calc(t){const l=t.toLowerCase(),nt0=parseNotes(t);if(!nt0.length)return null;
+  const ci=l.indexOf('concert'),nt=nt0.filter(n=>!INSTW.test(t.slice(n.end))),pool=nt.length?nt:nt0,N0=(ci>=0&&pool.find(n=>n.at>ci))||pool[0],mn=/\bminor\b|\bmin\b/.test(l),mj=mn?'minor':'major';
+  /* intervals between two notes */
+  if(/interval|apart|distance/.test(l)&&nt.length>=2){const a=nt[0],b=nt[1],st=(b.l-a.l+7)%7;let sm=((PCL[LT[b.l]]+b.a)-(PCL[LT[a.l]]+a.a)+12)%12;
+    const base=[0,2,4,5,7,9,11][st];let d=sm-base;if(d>6)d-=12;if(d<-6)d+=12;const per=[0,3,4].includes(st);
+    const q=per?(d==0?'perfect':d>0?'augmented':'diminished'):(d==0?'major':d==-1?'minor':d>0?'augmented':'diminished');
+    const nm_=['unison','2nd','3rd','4th','5th','6th','7th'][st];
+    return `From <b>${nn(a.l,a.a)}</b> up to <b>${nn(b.l,b.a)}</b> is a <b>${q} ${nm_}</b> (${sm||(st?12:0)} half steps).`}
+  /* transposition for a band instrument */
+  if(/transpos|concert|written|what note.*(play|read)|\bfor concert\b|play.*when/.test(l)&&/(clarinet|trumpet|cornet|sax|horn|flugel|flute|oboe|trombone|tuba|euphonium|baritone|bassoon|violin|cello)/.test(l)){
+    const E=/alto sax|bari(tone)? sax|alto clarinet|e.?flat/.test(l),F=/french horn|\bhorn\b|\bf horn\b/.test(l)&&!/baritone horn/.test(l),B=/clarinet|trumpet|cornet|soprano sax|tenor sax|flugel|b.?flat/.test(l);
+    const inst=E?['E♭ instrument',5,9]:F?['F horn',4,7]:B?['B♭ instrument',1,2]:null;
+    if(!inst)return `Flute, oboe, trombone, tuba, euphonium, bassoon and strings are <b>concert pitch</b> instruments, so what you read is what the band hears.`;
+    const fromW=/\b(written|reads?|sees?|on the page)\b/.test(l)&&!/concert/.test(l),sgn=fromW?-1:1,L2=(N0.l+sgn*inst[1]+70)%7,pt=((PCL[LT[N0.l]]+N0.a+sgn*inst[2])%12+12)%12,a2=((pt-PCL[LT[L2]]+18)%12)-6;
+    const o=nn(N0.l,N0.a),r=nn(L2,a2),how=E?'up a major 6th':F?'up a perfect 5th':'up a major 2nd';
+    return fromW?`If a ${inst[0]} <b>reads ${o}</b>, the band hears concert <b>${r}</b> (written is ${how} from concert).`:`When the band plays concert <b>${o}</b>, a ${inst[0]} reads <b>${r}</b> (${how} from concert).`}
+  /* fingerings on the valve instruments and trombone */
+  if(/fingering|valves?|position|how do (i|you) play|how to play/.test(l)&&/(trumpet|trombone|tuba|euphonium|baritone|horn)/.test(l)){
+    const k=/trombone/.test(l)?'trombone':/tuba/.test(l)?'tuba':/euph|baritone/.test(l)?'euph':/horn/.test(l)?'horn':'trumpet',b=FI[k],x=b.vars[0],f={v:b.vals?b.vals[0]:b.v},pc=((PCL[LT[N0.l]]+N0.a)%12+12)%12,out=[];
+    b.p.forEach((q,i)=>{const g=Math.min(i?q-b.p[i-1]:(f.v==0||f.v==3?7:12),f.v==0||f.v==3?7:12);for(let d=0;d<g;d++){const w=q-d+x.off;if(((w%12)+12)%12==pc)out.push([w,f.v==0?'position '+(d+1):(combos(d,f)[0].length?combos(d,f)[0].join('+'):'open')])}});
+    if(out.length)return `On a ${x.l} (${x.off?'written pitch':'concert pitch'}), <b>${nn(N0.l,N0.a)}</b>: ${out.slice(0,5).map(o=>`${nm(o[0])} = <b>${o[1]}</b>`).join(', ')}. The Fingering chart lets you try them.`}
+  /* chords */
+  if(/chord|triad/.test(l)){const R=l.slice(N0.end),T=x=>x.test(R),
+      Q=T(/^\s*(dim|°)/)||/diminished/.test(l)?['diminished',[0,3,6]]:T(/^\s*(aug|\+)/)||/augmented/.test(l)?['augmented',[0,4,8]]:T(/^\s*(maj\s?7|major\s?(7|seventh))/)||/major seventh/.test(l)?['major 7th',[0,4,7,11]]:T(/^\s*(m7|min\s?7|minor\s?(7|seventh))/)||/minor seventh/.test(l)?['minor 7th',[0,3,7,10]]:T(/^\s*(7|dom)/)||/dominant|seventh/.test(l)?['dominant 7th',[0,4,7,10]]:T(/^\s*(m(?!aj)|min)/)||mn?['minor',[0,3,7]]:['major',[0,4,7]];
+    const ns=Q[1].map((s,i)=>{const L2=(N0.l+i*2)%7,pt=(PCL[LT[N0.l]]+N0.a+s)%12,a2=((pt-PCL[LT[L2]]+18)%12)-6;return nn(L2,a2)});
+    return `A <b>${nn(N0.l,N0.a)} ${Q[0]}</b> chord is <b>${ns.join(' – ')}</b>.`}
+  /* relative keys */
+  if(/relative/.test(l)){const want=(l.match(/relative (major|minor)/)||[])[1],gm=want?want=='major':/^\s*(minor|min)/.test(l.slice(N0.end)),n=ksN(N0.l,N0.a,gm),L2=(N0.l+(gm?2:5))%7,a2=ksAcc(L2,n);
+    return gm?`The relative major of ${nn(N0.l,N0.a)} minor is <b>${nn(L2,a2)} major</b>. They share the same key signature.`:`The relative minor of ${nn(N0.l,N0.a)} major is <b>${nn(L2,a2)} minor</b>. They share the same key signature.`}
+  /* key signatures and scales */
+  const ks=/key signature|sharps|flats|how many/.test(l),sc=/scale|notes in|spell/.test(l)||/\bmajor\b|\bminor\b/.test(l)&&/notes/.test(l);
+  if(ks||sc){const n=ksN(N0.l,N0.a,mn);
+    if(Math.abs(n)>7)return `${nn(N0.l,N0.a)} ${mj} would need double sharps or flats, so musicians use its enharmonic twin instead.`;
+    const sig_=n==0?'no sharps or flats':`${Math.abs(n)} ${n>0?'sharp':'flat'}${Math.abs(n)>1?'s':''} (${ksList(n)})`;
+    const nts=Array.from({length:8},(_,i)=>{const L2=(N0.l+i)%7;return nn(L2,ksAcc(L2,n))});
+    if(sc&&!ks||(sc&&/scale|notes/.test(l)))return `The <b>${nn(N0.l,N0.a)} ${mj}</b> scale: <b>${nts.join(' ')}</b>. Key signature: ${sig_}.`;
+    return `<b>${nn(N0.l,N0.a)} ${mj}</b> has <b>${sig_}</b>.`}
+  return null}
+
 const A=[[/cold|temperature|winter/,'Cold air makes an instrument go flat. Warm it with your breath and play a few easy notes before you tune, or you will end up sharp once it warms up.'],
 [/order.*flats|flats.*order/,'Flats: <b>B E A D G C F</b>. “Battle Ends And Down Goes Charles’ Father.”'],
 [/order.*sharps|sharps.*order/,'Sharps: <b>F C G D A E B</b>. It is just the flats backwards, so you only memorize once.'],
@@ -512,10 +604,15 @@ const words=t=>t.toLowerCase().match(/[a-z0-9♯♭#]+/g)||[];
 function recall(l){const w=new Set(words(l));let best=null,bs=0;
   for(const [q,a] of [...KB.map(x=>[x.q,x.a]),...taught()]){const qw=words(q),n=qw.filter(x=>w.has(x)).length,sc=n/Math.max(qw.length,w.size,1);if(sc>bs){bs=sc;best=a}}
   return bs>=.6?best:null}
+const BR=typeof BRAIN!=='undefined'?BRAIN:[];
 function local(t){const l=t.toLowerCase(),r=recall(l);
   if(r)return esc(r)+' <span class="mut">(you taught me this)</span>';
+  let c=null;try{c=calc(t)}catch(e){}if(c)return c;
+  const b=BR.find(x=>x[0].test(l));if(b)return b[1];
   const a=A.find(a=>a[0].test(l));if(a)return a[1];
-  pend=t;return 'I do not know that one yet. If you know the answer, type it and I will save it on this device. Or say "skip".'}
+  pend=t;return 'I do not know that one yet.'+(MEL_API?'':' (My AI brain is not connected on this site, so I only know my built-in answers.)')+' If you know the answer, type it and I will save it on this device. Or say "skip".'}
+const melStat=s=>{const e=$('#mst');if(e)e.textContent=s};
+melStat(MEL_API?'AI mode: I can answer any music question.':'Offline mode: built-in answers only. The site owner can connect the AI (see the README).');
 async function ask(t){
   if(busy){say('One sec, still working on your last question.','bot');return}
   if(pend&&/\?\s*$/.test(t))pend=null;
@@ -530,8 +627,8 @@ async function ask(t){
   const tp=document.createElement('div');tp.className='m';tp.textContent='Mel is thinking…';log.append(tp);log.scrollTop=log.scrollHeight;
   try{const r=await fetch(MEL_API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:hist,notes:taught().slice(-10)})});
     if(!r.ok)throw 0;const d=await r.json();if(!d.reply)throw 0;
-    hist.push({role:'assistant',content:d.reply});tp.innerHTML=fmtAI(d.reply)}
-  catch(e){hist.pop();tp.innerHTML=local(t)}
+    hist.push({role:'assistant',content:d.reply});tp.innerHTML=fmtAI(d.reply);melStat('AI mode: I can answer any music question.')}
+  catch(e){hist.pop();tp.innerHTML=local(t)+' <span class="mut">(built-in answer: the AI did not respond)</span>';melStat('The AI did not respond, so I am using built-in answers. Check the Worker (see the README).')}
   busy=false;log.scrollTop=log.scrollHeight}
 $('#chips').innerHTML=['Why is my flute flat when it is cold?','Order of flats?','Clarinet squeaks'].map(t=>`<button class="chip" type="button">${t}</button>`).join('');
 $('#chips').onclick=e=>{if(e.target.classList.contains('chip'))ask(e.target.textContent)};
@@ -542,3 +639,4 @@ $('#drawer').onkeydown=e=>{if(e.key=='Escape')drawer(false)};
 $('#f').onsubmit=e=>{e.preventDefault();const v=$('#q').value.trim();if(v){ask(v);$('#q').value=''}};
 $('#poke').onclick=()=>drawer(true);
 guide();
+window.MB_OK=true;

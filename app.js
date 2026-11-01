@@ -1,4 +1,4 @@
-window.MB_VER=4;
+window.MB_VER=5;
 // Mel's AI brain. The Worker URL lives in config.js (see README, "Make Mel a real AI chatbot"), so updating this file never disconnects it.
 // Left empty, Mel still works with the built-in answers in brain.js and the teach-me notebook.
 const MEL_API=(window.MEL_API||'').trim();
@@ -176,19 +176,18 @@ function fRender(){const f=cfg(),b=FI[fk];$('#ddav').textContent=f.ab;$('#ddn').
   $('#fnvl').style.display=b.vals?'':'none';
   if(b.vals)$('#fnv').innerHTML=b.vals.map(n=>`<option value="${n}"${n==nv?' selected':''}>${n} valves</option>`).join('');
   $('#fstl').style.display=f.v==4?'':'none';$('#fstyle').value=sty;
-  $('#fctl').innerHTML=isT()?[1,2,3,4,5,6,7].map(n=>`<button class="vb pos" data-pos="${n}" aria-pressed="false" aria-label="Position ${n}">${n}</button>`).join(''):Array.from({length:f.v},(_,i)=>`<button class="vb" data-v="${i+1}" aria-pressed="false" aria-label="Valve ${i+1}"><b>${i+1}</b><small>${KEYS[i].toUpperCase()}</small></button>`).join('');
-  $('#fhint').textContent=isT()?'Hold a position (tap and hold, or hold keys 1 to 7) and the note keeps sounding. To play a scale, change positions: Auto register picks the closest note, like a real player. Q and W jump up or down a register. Hold B or Space to blow on the current position.':`Hold the valves (tap and hold, or hold ${KEYS.slice(0,f.v).join(' ').toUpperCase()}) and the note keeps sounding. To play a scale, change fingerings: Auto register picks the closest note, like a real player, and you can press valves together like 1+3. Q and W jump up or down a register. For the open note, hold the button, or hold B or Space.`;
+  $('#fctl').innerHTML=isT()?[1,2,3,4,5,6,7].map(n=>`<button class="vb pos" data-pos="${n}" aria-pressed="false" aria-label="Position ${n}">${n}</button>`).join(''):'<button class="vb op" data-open="1" aria-pressed="false" aria-label="Open note, no valves down"><b>Open</b><small>B</small></button>'+Array.from({length:f.v},(_,i)=>`<button class="vb" data-v="${i+1}" aria-pressed="false" aria-label="Valve ${i+1}"><b>${i+1}</b><small>${KEYS[i].toUpperCase()}</small></button>`).join('');
+  $('#fhint').textContent=isT()?'Hold a position (tap and hold, or hold keys 1 to 7) and the note keeps sounding. To play a scale, change positions: Auto register picks the closest note, like a real player. Q and W jump up or down a register. Hold B or Space to blow on the current position.':`Hold the valves (tap and hold, or hold ${KEYS.slice(0,f.v).join(' ').toUpperCase()}) and the note keeps sounding. To play a scale, change fingerings: Auto register picks the closest note, like a real player, and you can press valves together like 1+3. Q and W jump up or down a register. For the open note (no valves), hold the Open key, or hold B or Space.`;
   ref=f.p[pi];frc=null;
   pSync();fUpd();preload()}
 function fUpd(){const f=cfg(),d=depth(),t=pitch(),m=t.m;if(auto)pi=t.i;
   const gap=gapOf(f,pi),cur=[...dn].sort(),alts=(!isT()&&d>0)?combos(d,f).filter(c=>String(c)!=String(cur)).map(c=>fmtC(c,'+')):[];
-  $$('.vb').forEach(b=>{const on=isT()?+b.dataset.pos==pos:dn.has(+b.dataset.v);b.classList.toggle('down',on);b.setAttribute('aria-pressed',on)});
+  $$('.vb').forEach(b=>{const on=isT()?+b.dataset.pos==pos:b.dataset.open?br:dn.has(+b.dataset.v);b.classList.toggle('down',on);b.setAttribute('aria-pressed',on)});
   $('#rn').textContent=nm(m+f.off);
   $('#rs').textContent=(f.off?'Sounds '+nm(m)+' · ':'')+'Fingering: '+(isT()?'position '+pos:cur.length?cur.join(' + '):'open')+(alts.length?' · also '+alts.join(', '):'');
   $('#fchart').innerHTML=Array.from({length:gap},(_,k)=>`<button class="fc${k==d?' on':''}" data-d="${k}"><b>${nm(f.p[pi]-k+f.off)}</b><small>${isT()?'pos '+(k+1):combos(k,f).map(c=>fmtC(c)).join(' / ')}</small></button>`).join('');
   $('#rg').textContent=`Register ${pi+1} of ${f.p.length}`;
   $('#pn').textContent=$('#rn').textContent;$('#ps').textContent=$('#rs').textContent;
-  $('#breath').setAttribute('aria-pressed',br);$('#pbreath').setAttribute('aria-pressed',br);
   sound()}
 function reg(x){const f=cfg(),d=depth();
   if(auto){const cur=pitch().m,l=f.p.map((q,i)=>({m:q-d,i})).sort((a,b)=>a.m-b.m),n=x>0?l.find(o=>o.m>cur):[...l].reverse().find(o=>o.m<cur);
@@ -346,7 +345,7 @@ function pSync(){const b=FI[fk],f=cfg();
   $('#pnvl').style.display=b.vals?'':'none';$('#pnv').innerHTML=$('#fnv').innerHTML;
   $('#pstl').style.display=f.v==4?'':'none';$('#pstyle').value=sty;
   $('#pctl').innerHTML=$('#fctl').innerHTML;
-  $('#phelp').textContent=isT()?'Hold a slide position (tap and hold, or keys 1 to 7) to play. Space or B blows on the current position.':`Hold the valves to play (tap and hold, or keys ${KEYS.slice(0,f.v).join(' ').toUpperCase()}). Press valves together for combinations like 1+3. Space or B blows the open note.`;
+  $('#phelp').textContent=isT()?'Hold a slide position (tap and hold, or keys 1 to 7) to play. Space or B blows on the current position.':`Hold the valves to play (tap and hold, or keys ${KEYS.slice(0,f.v).join(' ').toUpperCase()}). Press valves together for combinations like 1+3. Hold the Open key (or Space or B) for the open note.`;
   pRebuild()}
 pKeys();
 $('#ptempo').oninput=()=>$('#ptv').textContent=$('#ptempo').value;
@@ -379,20 +378,17 @@ document.addEventListener('click',e=>{if(!e.target.closest('.dd'))dd(false)});
 /* the valves (and slide positions) exist twice, in the Fingering chart and on the Play page, and both work the same way */
 [$('#fctl'),$('#pctl')].forEach(fc=>{
 fc.onpointerdown=e=>{const b=e.target.closest('.vb');if(!b)return;cx();e.preventDefault();if(b.setPointerCapture)b.setPointerCapture(e.pointerId);
-  if(b.dataset.pos){pos=+b.dataset.pos;tdn=true}else{if(!hd.size)dn.clear();hd.add(+b.dataset.v);dn.add(+b.dataset.v)}fUpd()};
+  if(b.dataset.open){hd.clear();dn.clear();br=true}else if(b.dataset.pos){pos=+b.dataset.pos;tdn=true}else{if(!hd.size)dn.clear();hd.add(+b.dataset.v);dn.add(+b.dataset.v)}fUpd()};
 fc.onpointerup=fc.onpointercancel=e=>{const b=e.target.closest('.vb');if(!b)return;
-  if(b.dataset.v){hd.delete(+b.dataset.v);dn.delete(+b.dataset.v)}else tdn=false;fUpd()};
+  if(b.dataset.open)br=false;else if(b.dataset.v){hd.delete(+b.dataset.v);dn.delete(+b.dataset.v)}else tdn=false;fUpd()};
 fc.onclick=e=>{if(e.detail)return;const b=e.target.closest('.vb');if(!b)return;cx();/* keyboard activation (Enter or Space on a focused button) */
-  if(b.dataset.pos){pos=+b.dataset.pos;tdn=true;fUpd();setTimeout(()=>{tdn=false;fUpd()},900)}
+  if(b.dataset.open){hd.clear();dn.clear();br=true;fUpd();setTimeout(()=>{br=false;fUpd()},900)}
+  else if(b.dataset.pos){pos=+b.dataset.pos;tdn=true;fUpd();setTimeout(()=>{tdn=false;fUpd()},900)}
   else{const v=+b.dataset.v;if(hd.has(v)){hd.delete(v);dn.delete(v)}else{hd.add(v);dn.add(v)}fUpd()}}});
 $('#fchart').onclick=e=>{const b=e.target.closest('.fc');if(!b)return;cx();const k=+b.dataset.d,f=cfg(),m=f.p[pi]-k;
   dn.clear();hd.clear();if(isT())pos=k+1;else pickCombo(k,f).forEach(v=>dn.add(v));
   ref=m;frc={m,i:pi,d:k};
   tap=true;clearTimeout(tapT);tapT=setTimeout(()=>{tap=false;fUpd()},1200);fUpd()};
-[$('#breath'),$('#pbreath')].forEach(bt=>{
-bt.onpointerdown=e=>{cx();e.preventDefault();if(bt.setPointerCapture)bt.setPointerCapture(e.pointerId);br=true;fUpd()};
-bt.onpointerup=bt.onpointercancel=()=>{br=false;fUpd()};
-bt.onclick=e=>{if(e.detail)return;cx();br=true;fUpd();setTimeout(()=>{br=false;fUpd()},900)}});
 $('#rdn').onclick=()=>reg(-1);$('#rup').onclick=()=>reg(1);
 const vis=new Set();
 const io=new IntersectionObserver(es=>{es.forEach(x=>{x.isIntersecting?vis.add(x.target.id):vis.delete(x.target.id)});
@@ -570,7 +566,7 @@ function calc(t){const l=t.toLowerCase(),nt0=parseNotes(t);if(!nt0.length)return
   if(/relative/.test(l)){const want=(l.match(/relative (major|minor)/)||[])[1],gm=want?want=='major':/^\s*(minor|min)/.test(l.slice(N0.end)),n=ksN(N0.l,N0.a,gm),L2=(N0.l+(gm?2:5))%7,a2=ksAcc(L2,n);
     return gm?`The relative major of ${nn(N0.l,N0.a)} minor is <b>${nn(L2,a2)} major</b>. They share the same key signature.`:`The relative minor of ${nn(N0.l,N0.a)} major is <b>${nn(L2,a2)} minor</b>. They share the same key signature.`}
   /* key signatures and scales */
-  const ks=/key signature|sharps|flats|how many/.test(l),sc=/scale|notes in|spell/.test(l)||/\bmajor\b|\bminor\b/.test(l)&&/notes/.test(l);
+  const ks=/key signature|key of|sharps|flats|how many/.test(l),sc=/scale|notes in|spell|keys? in/.test(l)||/\bmajor\b|\bminor\b/.test(l);
   if(ks||sc){const n=ksN(N0.l,N0.a,mn);
     if(Math.abs(n)>7)return `${nn(N0.l,N0.a)} ${mj} would need double sharps or flats, so musicians use its enharmonic twin instead.`;
     const sig_=n==0?'no sharps or flats':`${Math.abs(n)} ${n>0?'sharp':'flat'}${Math.abs(n)>1?'s':''} (${ksList(n)})`;
@@ -605,14 +601,32 @@ function recall(l){const w=new Set(words(l));let best=null,bs=0;
   for(const [q,a] of [...KB.map(x=>[x.q,x.a]),...taught()]){const qw=words(q),n=qw.filter(x=>w.has(x)).length,sc=n/Math.max(qw.length,w.size,1);if(sc>bs){bs=sc;best=a}}
   return bs>=.6?best:null}
 const BR=typeof BRAIN!=='undefined'?BRAIN:[];
+/* ----- the known questions (questions.js): Mel finds the closest one to what you type ----- */
+const QAL=typeof QA!=='undefined'?QA:[];
+const STOP=new Set('what is the a an of does do mean means meaning define how to in on for and or me tell about explain can you i it are why when which who my your with at be by this that there their music musical'.split(' '));
+const SYN={'16th':'sixteenth','8th':'eighth','32nd':'thirtysecond','tempo':'tempo','minor':'minor','maj':'major','min':'minor'};
+const stem=w=>w.length>4?w.replace(/ies$/,'y').replace(/(ing|ed|es|s)$/,''):w;
+const kw=t=>[...new Set((t.toLowerCase().replace(/[-]/g,' ').match(/[a-z0-9♯♭#\/\.]+/g)||[]).map(x=>x.replace(/\.$/,'')).map(x=>SYN[x]||x).filter(x=>x&&!STOP.has(x)).map(stem))];
+QAL.forEach(x=>x.k=kw(x.q));
+const dice=(a,b)=>{if(!a.length||!b.length)return 0;const s=new Set(b);return 2*a.filter(x=>s.has(x)).length/(a.length+b.length)};
+const nearest=(t,n)=>{const u=kw(t);return QAL.map(x=>({x,s:dice(x.k,u)})).sort((p,q)=>q.s-p.s).slice(0,n)};
+/* did the student name a key, like "B flat major" or "in D"? Then the key calculator answers instead of the general question. */
+const hasKey=t=>/\b[A-G]\s*(flat|sharp|[♭♯#])/.test(t)||/\b[A-G][b#♭♯]\s*(major|minor|scale|key|chord)/.test(t)||/\b(in|of|for)\s+[A-G]\b/.test(t)||/\b[A-G]\s+(major|minor)\b/.test(t);
+function known(t){if(hasKey(t))return null;let best=null,bs=0;for(const x of QAL){if(x.c=='Every key')continue;const s=dice(x.k,kw(t));if(s>bs){bs=s;best=x}}return bs>=.75?best:null}
+const chip=q=>`<button class="chip sug" type="button">${esc(q)}</button>`;
+function suggest(t){const near=nearest(t,3).filter(o=>o.s>=.2);
+  if(near.length)return `I do not have that one exactly. Did you mean:<div class="sugs">${near.map(o=>chip(o.x.q)).join('')}</div>`;
+  return `I do not know that one yet. Here are some questions I can answer:<div class="sugs">${shuf(QAL.filter(x=>x.c!='Every key')).slice(0,3).map(o=>chip(o.q)).join('')}</div>Or tap <b>All questions</b> to see everything I know.`}
 function local(t){const l=t.toLowerCase(),r=recall(l);
   if(r)return esc(r)+' <span class="mut">(you taught me this)</span>';
+  const k=known(t);if(k)return k.a;
   let c=null;try{c=calc(t)}catch(e){}if(c)return c;
   const b=BR.find(x=>x[0].test(l));if(b)return b[1];
   const a=A.find(a=>a[0].test(l));if(a)return a[1];
-  pend=t;return 'I do not know that one yet.'+(MEL_API?'':' (My AI brain is not connected on this site, so I only know my built-in answers.)')+' If you know the answer, type it and I will save it on this device. Or say "skip".'}
+  return suggest(t)}
 const melStat=s=>{const e=$('#mst');if(e)e.textContent=s};
-melStat(MEL_API?'AI mode: I can answer any music question.':'Offline mode: built-in answers only. The site owner can connect the AI (see the README).');
+const melIdle=()=>melStat(MEL_API?'AI mode: I can answer any music question.':`I know ${QAL.length} questions. Type one, or tap All questions.`);
+melIdle();
 async function ask(t){
   if(busy){say('One sec, still working on your last question.','bot');return}
   if(pend&&/\?\s*$/.test(t))pend=null;
@@ -627,13 +641,26 @@ async function ask(t){
   const tp=document.createElement('div');tp.className='m';tp.textContent='Mel is thinking…';log.append(tp);log.scrollTop=log.scrollHeight;
   try{const r=await fetch(MEL_API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:hist,notes:taught().slice(-10)})});
     if(!r.ok)throw 0;const d=await r.json();if(!d.reply)throw 0;
-    hist.push({role:'assistant',content:d.reply});tp.innerHTML=fmtAI(d.reply);melStat('AI mode: I can answer any music question.')}
-  catch(e){hist.pop();tp.innerHTML=local(t)+' <span class="mut">(built-in answer: the AI did not respond)</span>';melStat('The AI did not respond, so I am using built-in answers. Check the Worker (see the README).')}
+    hist.push({role:'assistant',content:d.reply});tp.innerHTML=fmtAI(d.reply);melIdle()}
+  catch(e){hist.pop();tp.innerHTML=local(t);melStat('The AI did not respond, so I am using my built-in answers.')}
   busy=false;log.scrollTop=log.scrollHeight}
-$('#chips').innerHTML=['Why is my flute flat when it is cold?','Order of flats?','Clarinet squeaks'].map(t=>`<button class="chip" type="button">${t}</button>`).join('');
-$('#chips').onclick=e=>{if(e.target.classList.contains('chip'))ask(e.target.textContent)};
+const starters=()=>shuf(QAL.filter(x=>x.c!='Every key')).slice(0,3).map(x=>x.q);
+$('#chips').innerHTML=(QAL.length?starters():['Why is my flute flat when it is cold?','Order of flats?','Clarinet squeaks']).map(chip).join('')+'<button class="chip all" id="qall" type="button" aria-expanded="false">All questions ▸</button>';
+/* browse every question: grouped by topic, searchable */
+const cats=[...new Set(QAL.map(x=>x.c))];
+$('#qitems').innerHTML=cats.map(c=>`<h4 class="qcat">${c}</h4>`+QAL.filter(x=>x.c==c).map(x=>`<button class="qi" type="button">${esc(x.q)}</button>`).join('')).join('');
+function qpanel(on){$('#qlist').hidden=!on;$('#log').hidden=on;$('#chips').hidden=on;$('#qall').setAttribute('aria-expanded',on);
+  if(on){$('#qsearch').value='';qfilter('');$('#qsearch').focus()}else $('#q').focus()}
+function qfilter(v){const s=v.trim().toLowerCase();let cat=null,any=false;
+  $$('#qitems > *').forEach(e=>{if(e.tagName=='H4'){cat=e;e.hidden=true;return}const ok=!s||e.textContent.toLowerCase().includes(s);e.hidden=!ok;if(ok){cat.hidden=false;any=true}});
+  $('#qnone').hidden=any}
+$('#qsearch').oninput=e=>qfilter(e.target.value);
+$('#qitems').onclick=e=>{const b=e.target.closest('.qi');if(!b)return;qpanel(false);ask(b.textContent)};
+$('#qclose').onclick=()=>qpanel(false);
+$('#log').onclick=e=>{const c=e.target.closest('.sug');if(c)ask(c.textContent)};
+$('#chips').onclick=e=>{const c=e.target.closest('.chip');if(!c)return;if(c.id=='qall')qpanel(true);else ask(c.textContent)};
 function drawer(open){const d=$('#drawer');d.hidden=!open;$('#mel').setAttribute('aria-expanded',open);
-  if(open){if(!log.children.length)say('Hi, I’m Mel. Ask me about instruments, scales, tuning or practice.','bot');$('#q').focus()}else $('#mel').focus()}
+  if(open){if(!log.children.length)say('Hi, I’m Mel. Ask me about instruments, scales, tuning or practice, or tap <b>All questions</b> to see everything I know.','bot');$('#q').focus()}else{qpanel(false);$('#mel').focus()}}
 $('#mel').onclick=()=>drawer($('#drawer').hidden);$('#x').onclick=()=>drawer(false);
 $('#drawer').onkeydown=e=>{if(e.key=='Escape')drawer(false)};
 $('#f').onsubmit=e=>{e.preventDefault();const v=$('#q').value.trim();if(v){ask(v);$('#q').value=''}};

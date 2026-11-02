@@ -1,4 +1,4 @@
-window.MB_VER=5;
+window.MB_VER=6;
 // Mel's AI brain. The Worker URL lives in config.js (see README, "Make Mel a real AI chatbot"), so updating this file never disconnects it.
 // Left empty, Mel still works with the built-in answers in brain.js and the teach-me notebook.
 const MEL_API=(window.MEL_API||'').trim();
@@ -23,8 +23,9 @@ perc:['Percussion',['Set the snare stand at waist height. Put the keyboard at hi
 strings:['Violin / cello',['Loosen the bow hair to about a pencil width from the stick, then rosin it. Violin: set the shoulder rest. Cello: set the endpin so the C string peg sits near your left ear.','Violin: tuck under your chin, left foot slightly forward. Cello: feet flat, instrument rests on your chest and knees.','Left hand: curved fingers, thumb across from the first finger. Right hand: bent, relaxed bow hold with a rounded thumb.','Keep the bow straight and parallel to the bridge. Use slow, even bow strokes, and remember to breathe.']]
 };
 let cur='flute';const seen=new Set();
+const GLK={tuba:'tuba'};const GL=k=>`<svg class="gl" viewBox="0 0 48 48" aria-hidden="true"><use href="#g-${GLK[k]||k}"/></svg>`;
 const AB={flute:'Fl',clarinet:'Cl',sax:'Sx',trumpet:'Tp',trombone:'Tb',horn:'Hn',tuba:'Tu',perc:'Pc',strings:'Vn'};
-$('#stories').innerHTML=Object.entries(G).map(([k,v])=>`<button class="story" data-k="${k}" aria-label="${v[0]} guide"><span class="ring"><span class="av">${AB[k]}</span></span>${v[0].split(' ')[0]}</button>`).join('');
+$('#stories').innerHTML=Object.entries(G).map(([k,v])=>`<button class="story" data-k="${k}" aria-label="${v[0]} guide"><span class="ring"><span class="av">${GL(k)}</span></span>${v[0].split(' ')[0]}</button>`).join('');
 const car=$('#car'),dots=i=>$('#dots').innerHTML=T.map((_,n)=>`<i class="${n==i?'on':''}"></i>`).join('');
 function guide(){const c=cur,g=G[c];
   $$('.story').forEach(b=>{b.classList.toggle('on',b.dataset.k===c);b.classList.toggle('seen',seen.has(b.dataset.k)&&b.dataset.k!==c)});
@@ -170,7 +171,7 @@ function preload(){if(!pre)return;const f=cfg();if(SF[f.sf]){stat();return}
 function allUp(){hd.clear();dn.clear();tdn=false;br=false;tap=false;tkey='';clearTimeout(tapT);fUpd()}
 
 /* ----- drawing the chart ----- */
-function fRender(){const f=cfg(),b=FI[fk];$('#ddav').textContent=f.ab;$('#ddn').textContent=f.n;
+function fRender(){const f=cfg(),b=FI[fk];$('#ddav').innerHTML=GL(fk);$('#ddn').textContent=f.n;
   $('#fnote').textContent=f.t+(b.vals?' '+f.v+' valves.':'');
   $('#fvar').innerHTML=b.vars.map((x,i)=>`<option value="${i}"${i==vi?' selected':''}>${x.l}</option>`).join('');
   $('#fnvl').style.display=b.vals?'':'none';
@@ -179,7 +180,7 @@ function fRender(){const f=cfg(),b=FI[fk];$('#ddav').textContent=f.ab;$('#ddn').
   $('#fctl').innerHTML=isT()?[1,2,3,4,5,6,7].map(n=>`<button class="vb pos" data-pos="${n}" aria-pressed="false" aria-label="Position ${n}">${n}</button>`).join(''):'<button class="vb op" data-open="1" aria-pressed="false" aria-label="Open note, no valves down"><b>Open</b><small>B</small></button>'+Array.from({length:f.v},(_,i)=>`<button class="vb" data-v="${i+1}" aria-pressed="false" aria-label="Valve ${i+1}"><b>${i+1}</b><small>${KEYS[i].toUpperCase()}</small></button>`).join('');
   $('#fhint').textContent=isT()?'Hold a position (tap and hold, or hold keys 1 to 7) and the note keeps sounding. To play a scale, change positions: Auto register picks the closest note, like a real player. Q and W jump up or down a register. Hold B or Space to blow on the current position.':`Hold the valves (tap and hold, or hold ${KEYS.slice(0,f.v).join(' ').toUpperCase()}) and the note keeps sounding. To play a scale, change fingerings: Auto register picks the closest note, like a real player, and you can press valves together like 1+3. Q and W jump up or down a register. For the open note (no valves), hold the Open key, or hold B or Space.`;
   ref=f.p[pi];frc=null;
-  pSync();fUpd();preload()}
+  pSync();fUpd();preload();if(window.fqSync)fqSync()}
 function fUpd(){const f=cfg(),d=depth(),t=pitch(),m=t.m;if(auto)pi=t.i;
   const gap=gapOf(f,pi),cur=[...dn].sort(),alts=(!isT()&&d>0)?combos(d,f).filter(c=>String(c)!=String(cur)).map(c=>fmtC(c,'+')):[];
   $$('.vb').forEach(b=>{const on=isT()?+b.dataset.pos==pos:b.dataset.open?br:dn.has(+b.dataset.v);b.classList.toggle('down',on);b.setAttribute('aria-pressed',on)});
@@ -364,7 +365,7 @@ $('#plisten').onclick=e=>{cx();pListen();e.currentTarget.blur()};
 $('#phint').onchange=e=>{pDraw();pStatus();e.target.blur()};
 
 /* ----- controls ----- */
-$('#ddl').innerHTML=Object.entries(FI).map(([k,f])=>`<li><button data-k="${k}"><span class="av sm">${f.ab}</span>${f.n}</button></li>`).join('');
+$('#ddl').innerHTML=Object.entries(FI).map(([k,f])=>`<li><button data-k="${k}"><span class="av sm">${GL(k)}</span>${f.n}</button></li>`).join('');
 const dd=o=>{$('#ddl').hidden=!o;$('#ddb').setAttribute('aria-expanded',o)};
 $('#ddb').onclick=()=>dd($('#ddl').hidden);
 function setInst(k){allUp();fk=k;vi=0;nv=FI[fk].vals?FI[fk].vals[0]:FI[fk].v;pi=0;pos=1;fRender()}
@@ -666,4 +667,166 @@ $('#drawer').onkeydown=e=>{if(e.key=='Escape')drawer(false)};
 $('#f').onsubmit=e=>{e.preventDefault();const v=$('#q').value.trim();if(v){ask(v);$('#q').value=''}};
 $('#poke').onclick=()=>drawer(true);
 guide();
+
+/* ---------- "On the stand": the quick tools on the main view ---------- */
+(function(){
+const R=n=>Math.floor(Math.random()*n),P=a=>a[R(a.length)],SH=a=>a.map(x=>[Math.random(),x]).sort((a,b)=>a[0]-b[0]).map(x=>x[1]);
+const reduce=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+const NOTE_PC={c:0,d:2,e:4,f:5,g:7,a:9,b:11},LET='CDEFGAB',NAT=[0,2,4,5,7,9,11];
+
+/* ===== Maestro Mel: a card with a voice ===== */
+const TIPS=[
+['Tuning','Tune after you warm up. Cold air makes brass flat, and as the horn warms the pitch creeps sharp.'],
+['Tuning','Band tunes to concert B♭. If your director says "tune", trumpets and clarinets play a C, because they read a step above concert pitch.'],
+['Tuning','Listen to the person next to you and match them. Tuning is about blending, not about being louder.'],
+['Warm-up','Long tones first: hold each note 8 counts, keep the pitch steady, then swell it louder and softer.'],
+['Warm-up','Play your scale over a held drone. Your ear locks onto the home note and out-of-tune notes stick out.'],
+['Practice','Slow practice beats fast practice. If you can not play it slowly, you can not play it fast.'],
+['Practice','Put a pencil dot on your tricky spot, then loop just that measure five times. Do not restart the whole song.'],
+['Practice','Practice with the metronome on beats 2 and 4 only. It builds much steadier time than clicking every beat.'],
+['Practice','Stop at 20 minutes and rest your face for a minute. Tired chops sound worse, not better.'],
+['Reading','Check the key signature before the first note, every single time. It is the most missed thing in band.'],
+['Reading','Sharps arrive in the order F C G D A E B. Flats go the other way: B E A D G C F.'],
+['Reading','In a flat key, the second-to-last flat names the key. Four flats: B♭ E♭ A♭ D♭, so the key is A♭.'],
+['Reading','A relative minor sits three half steps below its major and shares its key signature. A minor goes with C major.'],
+['Rhythm','Count sixteenth notes out loud: "1 e and a, 2 e and a". Saying it beats guessing it.'],
+['Rhythm','Rests are music too. Count them as carefully as the notes.'],
+['Rhythm','Breathe in tempo. The breath before a phrase takes a beat, it is not a pause.'],
+['Care','Oil brass valves about once a week, and drop each valve straight back in so the numbers line up.'],
+['Care','Swab your clarinet or sax after every session. Moisture wrecks pads and reeds.'],
+['Care','Cork grease before you assemble a clarinet or sax, and twist gently. Never force a joint.'],
+['Care','Trombones: lock the slide before you carry it. A loose slide gets bent in one bad second.'],
+['Band life','Mark your music in pencil, never pen. Directors change their minds.'],
+['Band life','A fermata means hold it longer than written. Your director decides how long, so watch them.'],
+['Low brass','Low notes need big, relaxed air. Do not squeeze, aim the air and let the horn speak.'],
+['Trombone','1st position has the slide all the way in. 7th is all the way out. Move the slide fast and your note changes cleanly.']];
+const PROMPTS=['What are the notes in B♭ major?','How do I tune?','What does allegro mean?','What is a tie?','Notes in E♭ major','What is a key signature?','What does fermata mean?','How do I take care of my reed?','What is the circle of fifths?','What is a tritone?','What is syncopation?','Relative minor of G major'];
+let ti=-1,typer=0;
+function hello(){const h=new Date().getHours();return h<5?'Late night practice?':h<12?'Good morning.':h<18?'Good afternoon.':'Evening practice, nice.'}
+function melPrompts(){$('#mprompts').innerHTML=SH(PROMPTS).slice(0,3).map(q=>`<button class="chip" type="button" data-q="${q}">${q}</button>`).join('')}
+function melTip(){let n;do{n=R(TIPS.length)}while(n===ti);ti=n;const c=TIPS[n][0],t=TIPS[n][1],el=$('#mtip');
+  $('#mcat').textContent=c;clearInterval(typer);
+  const av=$('#melav');av.classList.remove('pop');void av.offsetWidth;av.classList.add('pop');
+  if(reduce){el.textContent=t;return}
+  el.textContent='';let i=0;typer=setInterval(()=>{el.textContent=t.slice(0,++i);if(i>=t.length)clearInterval(typer)},13)}
+function melAsk(q){const d=$('#drawer');if(d.hidden)$('#mel').click();const inp=$('#q');inp.value=q;const f=$('#f');
+  if(f.requestSubmit)f.requestSubmit();else f.dispatchEvent(new Event('submit',{cancelable:true,bubbles:true}))}
+$('#mhi').textContent=hello();melTip();melPrompts();
+$('#mnext').onclick=()=>{melTip();melPrompts()};
+$('#mask').onclick=()=>{const d=$('#drawer');if(d.hidden)$('#mel').click();else $('#q').focus()};
+$('#mprompts').onclick=e=>{const b=e.target.closest('.chip');if(b)melAsk(b.dataset.q)};
+
+/* ===== Quick pitch ===== */
+const PN=['C','C♯','D','E♭','E','F','F♯','G','A♭','A','B♭','B'],QS=[[0,'Piano'],[1,'Trumpet'],[3,'Tuba'],[4,'Horn'],[9,'Pure']];
+let qsd=0,qoc=4,qon=-1,qh=null,qtk=0;
+$('#qsnd').innerHTML=QS.map((s,i)=>`<button class="pill" type="button" aria-pressed="${i==qsd}" data-i="${i}">${s[1]}</button>`).join('');
+$('#qpg').innerHTML=PN.map((n,i)=>`<button class="pn${n.length>1?' blk':''}" type="button" aria-pressed="false" data-pc="${i}">${n}</button>`).join('');
+function qUI(){$$('#qpg .pn').forEach((b,i)=>b.setAttribute('aria-pressed',i==qon));$$('#qsnd .pill').forEach((b,i)=>b.setAttribute('aria-pressed',i==qsd));
+  $('#qpl').hidden=qon<0;$('#qeq').classList.toggle('on',qon>=0);$('#qoct').textContent='Octave '+qoc}
+function qStop(){qtk++;if(qh){try{qh.stop()}catch(e){}qh=null}qon=-1}
+async function qStart(pc){dStop();$$('#drone button').forEach(x=>x.setAttribute('aria-pressed','false'));
+  const d=DS[QS[qsd][0]],m=12*(qoc+1)+pc+d[2],tok=++qtk;qon=pc;qUI();
+  if(!d[1]){const c=cx(),o=c.createOscillator(),g=c.createGain();o.frequency.value=hz(m);g.gain.value=.15;o.connect(g);g.connect(c.destination);o.start();qh={stop(){o.stop()}};$('#qps').textContent='Holding concert '+PN[pc]+'.';return}
+  cx();if(!SF[d[1]]){$('#qps').textContent='Loading '+d[0].toLowerCase()+' sound…';await loadSF(d[1]);if(tok!==qtk)return}
+  qh=holdStart(SF[d[1]]||null,m,{perc:!!d[3]});$('#qps').textContent='Holding concert '+PN[pc]+'.'}
+$('#qpg').onclick=async e=>{const b=e.target.closest('.pn');if(!b)return;const pc=+b.dataset.pc,was=qon==pc;qStop();if(was){qUI();$('#qps').textContent='';return}await qStart(pc)};
+$('#qsnd').onclick=async e=>{const b=e.target.closest('.pill');if(!b)return;qsd=+b.dataset.i;const pc=qon;qStop();qUI();if(pc>=0)await qStart(pc);else{const d=DS[QS[qsd][0]];if(d[1]){cx();loadSF(d[1])}}};
+const qOct=k=>{qoc=Math.max(2,Math.min(6,qoc+k));const pc=qon;qStop();qUI();if(pc>=0)qStart(pc)};
+$('#qod').onclick=()=>qOct(-1);$('#qou').onclick=()=>qOct(1);
+$('#drone').addEventListener('click',()=>{if(qon>=0){qStop();qUI();$('#qps').textContent=''}});
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&qon>=0){qStop();qUI()}});
+qUI();
+
+/* ===== Fingering finder ===== */
+$('#fqi').innerHTML=Object.entries(FI).map(([k,f])=>`<option value="${k}">${f.n}</option>`).join('');
+const FQ_TRY=['B♭','F♯','E♭3','C','A4','D'];
+$('#fqs').innerHTML='<span class="mut">Try</span>'+FQ_TRY.map(t=>`<button class="chip" type="button" data-t="${t}">${t}</button>`).join('');
+function fqRun(){const f=cfg(),raw=$('#fqn').value,h=$('#fqh'),out=$('#fqr');
+  h.textContent=`Notes are written the way your ${FI[fk].n.toLowerCase()} reads them${f.off?' (not concert pitch)':''}. Click a result to hear it.`;
+  const t=raw.toLowerCase().replace(/♭/g,'b').replace(/♯/g,'#').replace(/flat/g,'b').replace(/sharp/g,'#').replace(/\s+/g,''),m=t.match(/^([a-g])(#|b)?(\d)?$/);
+  if(!t){out.innerHTML='';return}
+  if(!m){out.innerHTML='<p class="mut">Type a note name like C, B♭3 or f sharp.</p>';return}
+  const acc=m[2]=='#'?1:m[2]=='b'?-1:0,pc=NOTE_PC[m[1]]+acc,nm=m[1].toUpperCase()+(acc>0?'♯':acc<0?'♭':''),rows=[];
+  for(const o of (m[3]!=null?[+m[3]]:[0,1,2,3,4,5,6,7])){const w=12*(o+1)+pc,snd=w-f.off;
+    if(fingerFor(snd,f))rows.push(`<button class="fr" type="button" data-s="${snd}"><b>${nm}<sub>${o}</sub></b><span>${fingTxt(snd,f)}</span></button>`)}
+  out.innerHTML=rows.length?rows.join(''):`<p class="mut">${nm}${m[3]!=null?m[3]:''} is outside the range of the ${FI[fk].n.toLowerCase()}. Try another octave.</p>`}
+function fqSync(){const s=$('#fqi');if(s.value!=fk)s.value=fk;fqRun()}
+window.fqSync=fqSync;
+$('#fqn').oninput=fqRun;
+$('#fqi').onchange=e=>{setInst(e.target.value);e.target.blur()};
+$('#fqs').onclick=e=>{const b=e.target.closest('.chip');if(!b)return;$('#fqn').value=b.dataset.t;fqRun();$('#fqn').focus()};
+$('#fqr').onclick=async e=>{const b=e.target.closest('.fr');if(!b)return;const f=cfg(),snd=+b.dataset.s;cx();$$('#fqr .fr').forEach(x=>x.classList.toggle('on',x===b));
+  try{await noteSeq(f.sf||FI[fk].sf,[[-1,snd]],1.3,0)}catch(err){synth(hz(snd),cx().currentTime+.05,1)}};
+$('#fqn').value='B♭';fqSync();
+
+/* ===== Chord builder ===== */
+const CQ=[['Major',[0,4,7],'1 3 5'],['Minor',[0,3,7],'1 ♭3 5'],['Dim',[0,3,6],'1 ♭3 ♭5'],['Aug',[0,4,8],'1 3 ♯5'],['Sus4',[0,5,7],'1 4 5'],['Maj7',[0,4,7,11],'1 3 5 7'],['Dom7',[0,4,7,10],'1 3 5 ♭7'],['Min7',[0,3,7,10],'1 ♭3 5 ♭7']];
+const GEN={0:0,3:2,4:2,5:3,6:4,7:4,8:4,10:6,11:6},ROOTS=['C','D♭','D','E♭','E','F','F♯','G','A♭','A','B♭','B'];
+let cr=0,cq=0;
+const rootPC=n=>NAT[LET.indexOf(n[0])]+(n[1]=='♯'?1:n[1]=='♭'?-1:0);
+function spellChord(name,semis){const li=LET.indexOf(name[0]),rp=(rootPC(name)+120)%12;
+  return semis.map(s=>{const L=(li+GEN[s])%7,d=(((rp+s-NAT[L])%12)+18)%12-6;return LET[L]+(d>0?'♯'.repeat(d):d<0?'♭'.repeat(-d):'')})}
+$('#cbr').innerHTML=ROOTS.map((n,i)=>`<button class="pill sm" type="button" aria-pressed="${i==cr}" data-i="${i}">${n}</button>`).join('');
+$('#cbq').innerHTML=CQ.map((q,i)=>`<button class="pill" type="button" aria-pressed="${i==cq}" data-i="${i}">${q[0]}</button>`).join('');
+function keysSVG(mids){const lo=60,W=14,wh=[0,2,4,5,7,9,11];let w='',b='',x=0;
+  for(let m=lo;m<lo+24;m++){const pc=m%12,on=mids.includes(m);
+    if(wh.includes(pc)){w+=`<rect x="${x*20}" y="0" width="19" height="64" rx="3" class="${on?'k on':'k'}"/>`;x++}}
+  x=0;for(let m=lo;m<lo+24;m++){const pc=m%12,on=mids.includes(m);
+    if(wh.includes(pc)){x++;continue}
+    b+=`<rect x="${x*20-6}" y="0" width="12" height="38" rx="2" class="${on?'bk on':'bk'}"/>`}
+  return `<svg viewBox="0 0 ${W*20} 64" role="img" aria-label="Keyboard with the chord notes lit" preserveAspectRatio="xMidYMid meet">${w}${b}</svg>`}
+function cbRender(){const name=ROOTS[cr],q=CQ[cq],ns=spellChord(name,q[1]),base=60+(rootPC(name)+120)%12,mids=q[1].map(s=>base+s);
+  $('#cbn').innerHTML=`<span class="cbt">${name} ${q[0].toLowerCase()}</span>`+ns.map(n=>`<span class="cn">${n}</span>`).join('');
+  $('#cbf').textContent='Built from: '+q[2];$('#cbk').innerHTML=keysSVG(mids);
+  $$('#cbr .pill').forEach((b,i)=>b.setAttribute('aria-pressed',i==cr));$$('#cbq .pill').forEach((b,i)=>b.setAttribute('aria-pressed',i==cq));return mids}
+$('#cbr').onclick=e=>{const b=e.target.closest('.pill');if(b){cr=+b.dataset.i;cbRender()}};
+$('#cbq').onclick=e=>{const b=e.target.closest('.pill');if(b){cq=+b.dataset.i;cbRender()}};
+$('#cbp').onclick=async()=>{const mids=cbRender(),c=cx();$('#cbs').textContent='';
+  let p=SF.acoustic_grand_piano;if(!p){$('#cbs').textContent='Loading piano…';p=await loadSF('acoustic_grand_piano');$('#cbs').textContent=''}
+  const t0=c.currentTime+.08,step=.26;
+  mids.forEach((m,i)=>{const t=t0+i*step;if(p)p.play(m,t,{duration:.9,gain:1.5});else synth(hz(m),t,.9)});
+  const tc=t0+mids.length*step+.12;mids.forEach(m=>{if(p)p.play(m,tc,{duration:2.2,gain:1.2});else synth(hz(m),tc,1.6)})};
+cbRender();
+
+/* ===== Quick flashcards ===== */
+const SIGKEYS=['C','G','D','A','E','F','Bb','Eb','Ab','Db'],REL={C:'A',G:'E',D:'B',A:'F♯',E:'C♯',F:'D',Bb:'G',Eb:'C',Ab:'F',Db:'B♭'};
+const STAT=[['What does allegro mean?','Fast and lively'],['Adagio?','Slow and stately'],['Andante?','A comfortable walking pace'],['Moderato?','A moderate speed'],['Forte (f)?','Loud'],['Piano (p)?','Soft'],['Mezzo forte (mf)?','Medium loud'],['Crescendo?','Gradually get louder'],['Diminuendo?','Gradually get softer'],['Ritardando (rit.)?','Gradually slow down'],['Staccato?','Short and detached'],['Legato?','Smooth and connected'],['Fermata?','Hold longer than written'],['D.C. al Fine?','Go back to the start, then stop at Fine'],['Accent mark (>)?','Play that note with a stronger attack'],['Sforzando (sfz)?','A sudden, strong accent'],['What are enharmonic notes?','Same pitch, two names, like C♯ and D♭'],['What is the tonic?','The home note, 1st note of the scale'],['What is the dominant?','The 5th note of the scale'],['How many half steps in a perfect 5th?','7'],['Major scale pattern?','W W H W W W H'],['What is a tritone?','Three whole steps, 6 half steps']];
+function genCard(){const k=P(SIGKEYS),ki=keyInfo(MAJ.indexOf(k),0),n=fm(k);
+  return R(2)?['Key signature of '+n+' major?',(ki.n?ki.n+(ki.sharp?' sharp':' flat')+(ki.n>1?'s':''):'No sharps or flats')]:['Relative minor of '+n+' major?',REL[k]+' minor']}
+let deck=[],di=0,dscore=0,flipped=false;
+function fcDeal(){deck=SH(STAT).slice(0,8).concat([genCard(),genCard()]);deck=SH(deck);di=0;dscore=0;fcShow()}
+function fcShow(){const fc=$('#fcd');flipped=false;fc.classList.remove('flip');$('#fcm1').disabled=$('#fcg').disabled=true;
+  if(di>=deck.length){$('#fcq').textContent=`You got ${dscore} of ${deck.length}`;$('#fca').textContent='';fc.querySelector('em').textContent='tap for a new round';fc.classList.add('done');$('#fcc').textContent='Done';return}
+  fc.classList.remove('done');fc.querySelector('em').textContent='tap to flip';$('#fcq').textContent=deck[di][0];$('#fca').textContent=deck[di][1];$('#fcc').textContent=(di+1)+' / '+deck.length}
+$('#fcd').onclick=()=>{if(di>=deck.length)return fcDeal();flipped=!flipped;$('#fcd').classList.toggle('flip',flipped);$('#fcm1').disabled=$('#fcg').disabled=!flipped};
+$('#fcg').onclick=()=>{dscore++;di++;fcShow()};$('#fcm1').onclick=()=>{di++;fcShow()};
+fcDeal();
+
+/* ===== Today's warm-up ===== */
+const dt=new Date(),dk=d=>d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate(),today=dk(dt),doy=Math.floor((dt-new Date(dt.getFullYear(),0,0))/864e5),SOTD=['C','F','B♭','E♭','A♭','G','D'][doy%7];
+const WI=['Tune to concert B♭ (Quick pitch is right there)','Long tones: four notes, eight counts each',SOTD+' major scale, slow first, then up to tempo','Articulation: slur a short phrase, then tongue it','Play something you love'];
+const lj=(k,d)=>{try{return JSON.parse(ls(k)||d)}catch(e){return JSON.parse(d)}};
+let wdone=lj('mb-warm-'+today,'[]');
+function streak(){const days=lj('mb-warm-days','[]');let n=0,d=new Date();if(!days.includes(dk(d)))d.setDate(d.getDate()-1);while(days.includes(dk(d))){n++;d.setDate(d.getDate()-1)}return n}
+function wRender(){const n=wdone.filter(Boolean).length;
+  $('#wl').innerHTML=WI.map((t,i)=>`<li><label class="wi"><input type="checkbox" data-i="${i}"${wdone[i]?' checked':''}><span class="bx2"></span><span>${t}</span></label></li>`).join('');
+  $('#wb').style.width=(n/WI.length*100)+'%';
+  const s=streak(),st=$('#wst');st.hidden=s<1;st.textContent=s+(s==1?' day':' days')+' in a row';
+  $('#wn').textContent=n==WI.length?'That is a real warm-up. Go play something.':n?`${n} of ${WI.length} done, keep going`:'Five small things. Takes about ten minutes.'}
+$('#wl').onchange=e=>{const c=e.target.closest('input');if(!c)return;wdone[+c.dataset.i]=c.checked;ls('mb-warm-'+today,JSON.stringify(wdone));
+  const all=WI.every((_,i)=>wdone[i]),days=lj('mb-warm-days','[]'),has=days.includes(today);
+  if(all&&!has){days.push(today);ls('mb-warm-days',JSON.stringify(days.slice(-60)))}
+  else if(!all&&has){ls('mb-warm-days',JSON.stringify(days.filter(d=>d!=today)))}
+  wRender()};
+wRender();
+
+/* ===== little touches ===== */
+const qn=document.getElementById('mqn');if(qn&&typeof QAL!=='undefined')qn.textContent=QAL.length;
+document.addEventListener('pointermove',e=>{const b=e.target.closest&&e.target.closest('.bx,.post');if(!b)return;const r=b.getBoundingClientRect();b.style.setProperty('--mx',(e.clientX-r.left)+'px');b.style.setProperty('--my',(e.clientY-r.top)+'px')},{passive:true});
+/* the side bar lights up for the section you are in */
+const links=$$('.tabs a[href^="#"]:not(.brand)'),map={};links.forEach(a=>map[a.getAttribute('href').slice(1)]=a);
+if('IntersectionObserver' in window){const so=new IntersectionObserver(es=>{es.forEach(x=>{if(x.isIntersecting){links.forEach(a=>a.classList.remove('on'));const a=map[x.target.id];if(a)a.classList.add('on')}})},{rootMargin:'-25% 0px -60% 0px'});
+  Object.keys(map).forEach(id=>{const el=document.getElementById(id);if(el)so.observe(el)})}
+})();
+
 window.MB_OK=true;

@@ -1,4 +1,4 @@
-window.MB_VER=6;
+window.MB_VER=7;
 // Mel's AI brain. The Worker URL lives in config.js (see README, "Make Mel a real AI chatbot"), so updating this file never disconnects it.
 // Left empty, Mel still works with the built-in answers in brain.js and the teach-me notebook.
 const MEL_API=(window.MEL_API||'').trim();
@@ -626,7 +626,7 @@ function local(t){const l=t.toLowerCase(),r=recall(l);
   const a=A.find(a=>a[0].test(l));if(a)return a[1];
   return suggest(t)}
 const melStat=s=>{const e=$('#mst');if(e)e.textContent=s};
-const melIdle=()=>melStat(MEL_API?'AI mode: I can answer any music question.':`I know ${QAL.length} questions. Type one, or tap All questions.`);
+const melIdle=()=>melStat('');
 melIdle();
 async function ask(t){
   if(busy){say('One sec, still working on your last question.','bot');return}
@@ -661,7 +661,7 @@ $('#qclose').onclick=()=>qpanel(false);
 $('#log').onclick=e=>{const c=e.target.closest('.sug');if(c)ask(c.textContent)};
 $('#chips').onclick=e=>{const c=e.target.closest('.chip');if(!c)return;if(c.id=='qall')qpanel(true);else ask(c.textContent)};
 function drawer(open){const d=$('#drawer');d.hidden=!open;$('#mel').setAttribute('aria-expanded',open);
-  if(open){if(!log.children.length)say('Hi, I’m Mel. Ask me about instruments, scales, tuning or practice, or tap <b>All questions</b> to see everything I know.','bot');$('#q').focus()}else{qpanel(false);$('#mel').focus()}}
+  if(open){if(!log.children.length)say('Hi, I’m Mel. Ask me about instruments, scales, tuning or practice.','bot');$('#q').focus()}else{qpanel(false);$('#mel').focus()}}
 $('#mel').onclick=()=>drawer($('#drawer').hidden);$('#x').onclick=()=>drawer(false);
 $('#drawer').onkeydown=e=>{if(e.key=='Escape')drawer(false)};
 $('#f').onsubmit=e=>{e.preventDefault();const v=$('#q').value.trim();if(v){ask(v);$('#q').value=''}};

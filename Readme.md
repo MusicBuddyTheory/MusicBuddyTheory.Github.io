@@ -12,6 +12,7 @@ Live site: https://musicbuddytheory.github.io/
 - **Playable fingering charts** for trumpet, euphonium/baritone, tuba, French horn and trombone. Pick the instrument from the dropdown, then hold the on-screen valves with your fingers (or the keys A S D F on a keyboard, Q and W to change register). Trombone uses slide positions 1 to 7. The note keeps sounding for as long as you hold the valves or slide position, and every combination plays a real instrument recording. An **Open** key sits beside the valves: hold it (or hold B or Space) to play the open note, with no valves down. Each instrument has a Type / key menu (B♭, C, D and E♭ trumpet; BB♭, CC, E♭ and F tuba; F or B♭ side on the horn; tenor or alto trombone; bass or treble clef euphonium) and tubas and euphoniums can switch between 3 and 4 valves.
 - **Scales on the fingering chart.** With Auto register on (the default), the chart picks the note closest to the last one you played, like a real player, so you can play a real scale by changing fingerings (A S D F for valves, press valves together for combinations like 1+3). Q and W jump a register. Every fingering also shows its alternates (for example 4 or 1+3, 1+2 or 3).
 - **Play page.** A separate section (the Play tab on the side or bottom bar) with its own playable valves or slide positions and real staff notation with the key signature. **Scale** shows any major or natural minor scale on the staff. **Songs** lines up 12 random songs (random key, style, tempo and name, all playable on your instrument). Each one plays as it shows up, so you can skip the ones you do not like, go back, or replay, and then tap **Play this one**. Press **Practice** and play it yourself: the page waits for each correct note, and every note you get right the first time turns green while every note you miss turns red. At the end you get your score. "Show fingerings" writes the fingering under every note. Notes are written the way your instrument reads them (bass or treble clef, transposed for B♭, E♭ and F instruments).
+- **Instrument index.** Nine solid, heavy instrument icons (flute, clarinet, sax, trumpet, trombone, horn, baritone and tuba, percussion, strings) double as the navigation: pick one and its setup guide opens. The same icons appear in the fingering chart menu.
 - **Flashcards** for the circle of fifths, interval math, key color and mood, and a keyboard map.
 - **Sight-reading quiz.** Ten staff questions each round: name the note (mind the key signature), name the key from its signature, or pick the fingering for a note on your instrument. Choose treble clef, bass clef, both, or match your instrument.
 - **Pop quiz.** Ten new questions every round (key signatures, transposition, relative minors, intervals, music vocabulary). Your best score is saved in your browser only.
@@ -22,13 +23,13 @@ Live site: https://musicbuddytheory.github.io/
 
 ```
 index.html   page structure and content
-styles.css   all styling (black and blue theme)
+styles.css   all styling (field-guide look: matte black and one blue)
 app.js       guides, scale engine, Play page, quizzes, metronome, Mel chat
 brain.js     Mel's built-in answers (works with no AI connected)
 config.js    your settings: the Worker link that turns Mel into a real AI
 worker.js    optional backend that gives Mel real AI answers (deployed separately)
 knowledge.json  extra answers for Mel that you can edit any time
-logo.svg, logo-mark.svg, favicon.svg   the logo files
+logo-mark.svg, favicon.svg   spare copies of the logo (the page draws its own, so nothing can break)
 ```
 
 ## Put it on GitHub Pages
@@ -45,18 +46,17 @@ logo.svg, logo-mark.svg, favicon.svg   the logo files
 - **Quiz questions:** the `S` list (fixed questions) and the `GEN` list (generated questions) in `app.js`.
 - **Mel's built-in answers:** the list in `brain.js` (about a hundred topics already). Each entry is a pattern and a reply. Add your own at the bottom.
 - **Mel's personality (AI mode):** the `SYSTEM` text at the top of `worker.js`.
-- **Colors:** the variables at the top of `styles.css` (`--bg`, `--card`, `--tint` and `--line` are the blacks and greys, `--accent` and `--at` are the blues).
+- **Colors:** the variables at the top of `styles.css`. `--bg` is the black, `--blue` is the accent, `--ink` is the reading text (a lighter tint of the same blue), `--rule` is the hairline colour. `--goodb` and `--badb` are only for right and wrong marking.
 - **Fingering chart instruments and keys:** the `FI` object in `app.js`. Each instrument has a list of `vars` (its keys or types), with a half-step shift `s` and a reading offset `off`.
-- **Fonts:** `--head` and `--body` at the top of `styles.css`, plus the Google Fonts link in `index.html`.
+- **Fonts:** `--serif` and `--mono` at the top of `styles.css`, plus the Google Fonts link in `index.html`.
 - **Mel's questions:** `questions.js` holds 155 ready-made questions and answers (scales, every major and minor key, notes and rhythm, terms, intervals, chords, instruments, history). Mel matches what a student types to the closest one, works out key and scale questions for any key, and offers "Did you mean" suggestions otherwise. "All questions" opens a searchable list. To add one, copy a line in `questions.js`: `{c:"Category",q:"Question?",a:"Answer"}`. No AI or API key is needed.
-- **Logo:** built into `index.html` (so it cannot break); `logo-mark.svg` and `favicon.svg` are spare copies. Mel is only the chat mascot and is not part of the logo.
-- **Logo wordmark font:** the `--logo-font` line near the bottom of `styles.css`.
+- **Logo:** built into `index.html` as a flat blue mark. Mel is only the chat mascot and is not part of the logo.
 
 ## Notes
 
 - Sounds use the browser's Web Audio API, so the first tap on a sound button may be needed before audio plays on phones.
 - Instrument sounds are real recordings from the MusyngKite soundfont (Creative Commons Attribution Share-Alike 3.0, via midi-js-soundfonts), with the FluidR3 GM soundfont (Creative Commons Attribution 3.0) as a backup if it cannot load, loaded on demand with the soundfont-player library (MIT). They need an internet connection; offline, the site falls back to a simple synthesized tone. The first play of each instrument takes a moment to download.
-- The site uses a black and blue theme. Text is set in Barlow (headings), Source Sans 3 (body) and Caveat (the handwritten notes), loaded from Google Fonts; if they cannot load, your device's standard system fonts are used.
+- The site uses a matte black and blue field-guide look. Text is set in Newsreader (serif) and IBM Plex Mono (labels), loaded from Google Fonts; if they cannot load, your device's standard system fonts are used.
 
 ## Make Mel a real AI chatbot
 

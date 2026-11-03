@@ -1,4 +1,4 @@
-window.MB_VER=7;
+window.MB_VER=8;
 // Mel's AI brain. The Worker URL lives in config.js (see README, "Make Mel a real AI chatbot"), so updating this file never disconnects it.
 // Left empty, Mel still works with the built-in answers in brain.js and the teach-me notebook.
 const MEL_API=(window.MEL_API||'').trim();
@@ -23,9 +23,10 @@ perc:['Percussion',['Set the snare stand at waist height. Put the keyboard at hi
 strings:['Violin / cello',['Loosen the bow hair to about a pencil width from the stick, then rosin it. Violin: set the shoulder rest. Cello: set the endpin so the C string peg sits near your left ear.','Violin: tuck under your chin, left foot slightly forward. Cello: feet flat, instrument rests on your chest and knees.','Left hand: curved fingers, thumb across from the first finger. Right hand: bent, relaxed bow hold with a rounded thumb.','Keep the bow straight and parallel to the bridge. Use slow, even bow strokes, and remember to breathe.']]
 };
 let cur='flute';const seen=new Set();
-const GLK={tuba:'tuba'};const GL=k=>`<svg class="gl" viewBox="0 0 48 48" aria-hidden="true"><use href="#g-${GLK[k]||k}"/></svg>`;
+const GLK={tuba:'tuba'};const GL=k=>`<svg class="gl" viewBox="0 0 64 64" aria-hidden="true"><use href="#g-${GLK[k]||k}"/></svg>`;
+const CAT={flute:'Woodwind',clarinet:'Woodwind',sax:'Woodwind',trumpet:'Brass',trombone:'Brass',horn:'Brass',tuba:'Brass',perc:'Percussion',strings:'String'};
 const AB={flute:'Fl',clarinet:'Cl',sax:'Sx',trumpet:'Tp',trombone:'Tb',horn:'Hn',tuba:'Tu',perc:'Pc',strings:'Vn'};
-$('#stories').innerHTML=Object.entries(G).map(([k,v])=>`<button class="story" data-k="${k}" aria-label="${v[0]} guide"><span class="ring"><span class="av">${GL(k)}</span></span>${v[0].split(' ')[0]}</button>`).join('');
+$('#stories').innerHTML=Object.entries(G).map(([k,v],i)=>`<button class="story" data-k="${k}" aria-label="${v[0]} guide"><span class="pno">${String(i+1).padStart(2,'0')}</span><span class="gw">${GL(k)}</span><b>${v[0]}</b><i>${CAT[k]}</i></button>`).join('');
 const car=$('#car'),dots=i=>$('#dots').innerHTML=T.map((_,n)=>`<i class="${n==i?'on':''}"></i>`).join('');
 function guide(){const c=cur,g=G[c];
   $$('.story').forEach(b=>{b.classList.toggle('on',b.dataset.k===c);b.classList.toggle('seen',seen.has(b.dataset.k)&&b.dataset.k!==c)});
@@ -795,10 +796,10 @@ function genCard(){const k=P(SIGKEYS),ki=keyInfo(MAJ.indexOf(k),0),n=fm(k);
   return R(2)?['Key signature of '+n+' major?',(ki.n?ki.n+(ki.sharp?' sharp':' flat')+(ki.n>1?'s':''):'No sharps or flats')]:['Relative minor of '+n+' major?',REL[k]+' minor']}
 let deck=[],di=0,dscore=0,flipped=false;
 function fcDeal(){deck=SH(STAT).slice(0,8).concat([genCard(),genCard()]);deck=SH(deck);di=0;dscore=0;fcShow()}
-function fcShow(){const fc=$('#fcd');flipped=false;fc.classList.remove('flip');$('#fcm1').disabled=$('#fcg').disabled=true;
+function fcShow(){const fc=$('#fcd');flipped=false;fc.classList.remove('turned');$('#fcm1').disabled=$('#fcg').disabled=true;
   if(di>=deck.length){$('#fcq').textContent=`You got ${dscore} of ${deck.length}`;$('#fca').textContent='';fc.querySelector('em').textContent='tap for a new round';fc.classList.add('done');$('#fcc').textContent='Done';return}
   fc.classList.remove('done');fc.querySelector('em').textContent='tap to flip';$('#fcq').textContent=deck[di][0];$('#fca').textContent=deck[di][1];$('#fcc').textContent=(di+1)+' / '+deck.length}
-$('#fcd').onclick=()=>{if(di>=deck.length)return fcDeal();flipped=!flipped;$('#fcd').classList.toggle('flip',flipped);$('#fcm1').disabled=$('#fcg').disabled=!flipped};
+$('#fcd').onclick=()=>{if(di>=deck.length)return fcDeal();flipped=!flipped;$('#fcd').classList.toggle('turned',flipped);$('#fcm1').disabled=$('#fcg').disabled=!flipped};
 $('#fcg').onclick=()=>{dscore++;di++;fcShow()};$('#fcm1').onclick=()=>{di++;fcShow()};
 fcDeal();
 

@@ -604,3 +604,41 @@ a.btn { display: inline-block; text-decoration: none; }
 .m { font-size: .95rem; line-height: 1.55; }
 .melc .bub p { font-size: clamp(1.25rem, 1.05rem + 1vw, 1.7rem); }
 .note, .wn { font-size: var(--t0); }
+
+/* ==========================================================================
+   ROUNDED PASS: no hard corners anywhere. Same palette, softer edges.
+   ========================================================================== */
+:root { --rr: 14px; --rr2: 20px; }
+/* instrument index: separate rounded tiles instead of a ruled grid */
+.stories { border: 0; border-radius: 0; overflow: visible; gap: 10px; background: none; }
+.story, .story:hover { border: 1px solid var(--rule2); border-radius: var(--rr2); }
+.story { transition: background .15s, border-color .15s, transform .15s; }
+.story:hover { transform: translateY(-3px); box-shadow: none; border-color: var(--blue); background: var(--panel2, #0a0c10); }
+.story.on { border-radius: var(--rr2); }
+.gl, .gl * { stroke-linejoin: round; }
+.gl { width: 84px; height: 84px; }
+/* controls, boxes, panels */
+select, input[type=text], .btn, .pill, .chip, .tag, .fc, .pn, .cn, .opt, .qi, .box, .deckcard, .staffbox, .car, .facts, .melc, .kick, .stale { border-radius: var(--rr); }
+.box, .deckcard, .staffbox, .car, .melc { border-radius: var(--rr2); }
+.btn { border-radius: 999px; }
+.tag { border-radius: 999px; }
+.seg { border-radius: 999px; overflow: hidden; }
+.seg .btn { border-radius: 0; }
+.pill, .chip { border-radius: 999px; }
+.notes, .fchart, .fqr, .pgrid { border-radius: var(--rr2); overflow: hidden; }
+.dots i { height: 6px; width: 6px; border-radius: 50%; } .dots i.on { width: 22px; border-radius: 999px; }
+.bar, .wbar { border-radius: 999px; } .bar i, .wbar i { border-radius: 999px; }
+.mel { border-radius: 50%; } .melav { border-radius: 28px; }
+.drawer { border-radius: 24px; } .m { border-radius: 16px; } .m.me { border-radius: 16px 16px 4px 16px; }
+.bx2, .chk input { border-radius: 7px; }
+input[type=range]::-webkit-slider-thumb { border-radius: 999px; } input[type=range]::-moz-range-thumb { border-radius: 999px; }
+.fcard, .flip, .face, .ff { border-radius: var(--rr2); }
+.ph .av { border-radius: 16px; }
+.facts { border-radius: var(--rr2); overflow: hidden; }
+/* music notation: round caps and joins on every stem, beam, clef and ledger line */
+.stf *, .nt *, .cbk svg * { stroke-linecap: round; stroke-linejoin: round; }
+.nt .bm { stroke-linecap: round; }
+.bt svg { stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.8; }
+.lm, .logo svg { stroke-linejoin: round; }
+@media (max-width: 560px) { .gl { width: 64px; height: 64px; } .stories { gap: 8px; } }
+.ph .av svg { width: 28px; height: 28px; }

@@ -593,14 +593,14 @@ const A=[[/cold|temperature|winter/,'Cold air makes an instrument go flat. Warm 
 [/^(hi|hello|hey|yo)\b/,'Hi, I am Mel. Ask me about reeds, scales, tuning or practice.']];
 const log=$('#log');
 function say(t,c){log.insertAdjacentHTML('beforeend',`<div class="m ${c}">${t}</div>`);log.scrollTop=log.scrollHeight}
-const esc=t=>t.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+const esc=t=>String(t==null?'':t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmtAI=t=>esc(t).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/\n/g,'<br>');
 let hist=[],busy=false,pend=null;
 let KB=[];fetch('knowledge.json').then(r=>r.ok?r.json():[]).then(j=>{if(Array.isArray(j))KB=j}).catch(()=>{});
-const taught=()=>{try{return JSON.parse(ls('mb-taught')||'[]')}catch(e){return[]}};
+const taught=()=>{try{const j=JSON.parse(ls('mb-taught')||'[]');return Array.isArray(j)?j.filter(x=>Array.isArray(x)&&typeof x[0]=='string'&&typeof x[1]=='string').slice(-50):[]}catch(e){return[]}};
 const words=t=>t.toLowerCase().match(/[a-z0-9♯♭#]+/g)||[];
 function recall(l){const w=new Set(words(l));let best=null,bs=0;
-  for(const [q,a] of [...KB.map(x=>[x.q,x.a]),...taught()]){const qw=words(q),n=qw.filter(x=>w.has(x)).length,sc=n/Math.max(qw.length,w.size,1);if(sc>bs){bs=sc;best=a}}
+  for(const [q,a] of [...KB.filter(x=>x&&typeof x.q=='string'&&typeof x.a=='string').map(x=>[x.q,x.a]),...taught()]){const qw=words(q),n=qw.filter(x=>w.has(x)).length,sc=n/Math.max(qw.length,w.size,1);if(sc>bs){bs=sc;best=a}}
   return bs>=.6?best:null}
 const BR=typeof BRAIN!=='undefined'?BRAIN:[];
 /* ----- the known questions (questions.js): Mel finds the closest one to what you type ----- */
@@ -704,7 +704,7 @@ const TIPS=[
 const PROMPTS=['What are the notes in B♭ major?','How do I tune?','What does allegro mean?','What is a tie?','Notes in E♭ major','What is a key signature?','What does fermata mean?','How do I take care of my reed?','What is the circle of fifths?','What is a tritone?','What is syncopation?','Relative minor of G major'];
 let ti=-1,typer=0;
 function hello(){const h=new Date().getHours();return h<5?'Late night practice?':h<12?'Good morning.':h<18?'Good afternoon.':'Evening practice, nice.'}
-function melPrompts(){$('#mprompts').innerHTML=SH(PROMPTS).slice(0,3).map(q=>`<button class="chip" type="button" data-q="${q}">${q}</button>`).join('')}
+function melPrompts(){$('#mprompts').innerHTML=SH(PROMPTS).slice(0,3).map(q=>`<button class="chip" type="button" data-q="${esc(q)}">${esc(q)}</button>`).join('')}
 function melTip(){let n;do{n=R(TIPS.length)}while(n===ti);ti=n;const c=TIPS[n][0],t=TIPS[n][1],el=$('#mtip');
   $('#mcat').textContent=c;clearInterval(typer);
   const av=$('#melav');av.classList.remove('pop');void av.offsetWidth;av.classList.add('pop');
@@ -741,7 +741,7 @@ qUI();
 /* ===== Fingering finder ===== */
 $('#fqi').innerHTML=Object.entries(FI).map(([k,f])=>`<option value="${k}">${f.n}</option>`).join('');
 const FQ_TRY=['B♭','F♯','E♭3','C','A4','D'];
-$('#fqs').innerHTML='<span class="mut">Try</span>'+FQ_TRY.map(t=>`<button class="chip" type="button" data-t="${t}">${t}</button>`).join('');
+$('#fqs').innerHTML='<span class="mut">Try</span>'+FQ_TRY.map(t=>`<button class="chip" type="button" data-t="${esc(t)}">${esc(t)}</button>`).join('');
 function fqRun(){const f=cfg(),raw=$('#fqn').value,h=$('#fqh'),out=$('#fqr');
   h.textContent=`Notes are written the way your ${FI[fk].n.toLowerCase()} reads them${f.off?' (not concert pitch)':''}. Click a result to hear it.`;
   const t=raw.toLowerCase().replace(/♭/g,'b').replace(/♯/g,'#').replace(/flat/g,'b').replace(/sharp/g,'#').replace(/\s+/g,''),m=t.match(/^([a-g])(#|b)?(\d)?$/);

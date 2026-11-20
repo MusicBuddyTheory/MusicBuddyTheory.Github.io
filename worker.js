@@ -21,6 +21,15 @@ async function knowledge(env) {
   return kbCache.txt;
 }
 
+// Best-effort abuse limits. The Origin header only stops other websites, not scripts that fake it, so cap what any one caller can spend.
+const hits = new Map();
+function limited(ip, max = 20, windowMs = 60000) {
+  const now = Date.now(), h = (hits.get(ip) || []).filter(t => now - t < windowMs);
+  h.push(now); hits.set(ip, h);
+  if (hits.size > 5000) for (const [k, v] of hits) if (!v.length || now - v[v.length - 1] > windowMs) hits.delete(k);
+  return h.length > max;
+}
+
 export default {
   async fetch(req, env) {
     const origin = req.headers.get('Origin') || '';
@@ -29,12 +38,17 @@ export default {
     const cors = { 'Access-Control-Allow-Origin': ok ? origin : 'null', 'Access-Control-Allow-Methods': 'POST, GET, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type', 'Vary': 'Origin' };
     if (req.method === 'OPTIONS') return new Response(null, { headers: cors });
     if (req.method === 'GET') {
-      return new Response(`Mel's Worker is running.\nAPI key: ${env.ANTHROPIC_API_KEY ? 'set' : 'MISSING (add the ANTHROPIC_API_KEY secret)'}\nAllowed site: ${allowed.length ? allowed.join(', ') : 'MISSING (add the ALLOWED_ORIGIN variable)'}\nModel: ${env.MODEL || 'claude-haiku-5-5'}`, { headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
+      // Only say whether setup is complete; never reveal the model, the origins or anything else about the configuration.
+      const ready = env.ANTHROPIC_API_KEY && allowed.length;
+      return new Response(`Mel's Worker is running.\nSetup: ${ready ? 'complete' : 'INCOMPLETE (check the ANTHROPIC_API_KEY secret and the ALLOWED_ORIGIN variable)'}`, { headers: { 'Content-Type': 'text/plain; charset=utf-8', 'X-Content-Type-Options': 'nosniff' } });
     }
     if (req.method !== 'POST' || !ok) return new Response('Not allowed', { status: 403, headers: cors });
     if (!env.ANTHROPIC_API_KEY) return new Response('Missing API key', { status: 500, headers: cors });
+    if (limited(req.headers.get('CF-Connecting-IP') || 'anon')) return new Response('Slow down a little', { status: 429, headers: cors });
+    if (Number(req.headers.get('Content-Length') || 0) > 20000) return new Response('Too large', { status: 413, headers: cors });
     let body;
-    try { body = await req.json(); } catch { return new Response('Bad request', { status: 400, headers: cors }); }
+    try { const raw = await req.text(); if (raw.length > 20000) return new Response('Too large', { status: 413, headers: cors }); body = JSON.parse(raw); } catch { return new Response('Bad request', { status: 400, headers: cors }); }
+    if (!body || typeof body !== 'object') return new Response('Bad request', { status: 400, headers: cors });
     const msgs = (Array.isArray(body.messages) ? body.messages : []).slice(-12)
       .filter(m => (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string')
       .map(m => ({ role: m.role, content: m.content.slice(0, 1200) }));

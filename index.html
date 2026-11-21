@@ -14,6 +14,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
 <link rel="stylesheet" href="styles.css?v=8">
+<link rel="stylesheet" href="polish.css?v=9">
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="mel-note" viewBox="0 0 128 128"><g transform="rotate(-2.5 64 70)">    <path d="M68 98L95.8 20" fill="none" stroke="#F4F4F5" stroke-width="5" stroke-linecap="butt"/>    <rect x="89" y="11" width="13" height="15" fill="#F4F4F5"/>    <path d="M34 112L47 20H81L94 112Z" fill="#2F6BFF" stroke="#F4F4F5" stroke-width="5" stroke-linejoin="miter"/>    <path d="M49.5 36h5M47.4 47h7M46.6 59h3.5M44.8 69h6M42.5 82h3.5M41.9 91h7M40.4 101h4M79.5 40h-7M80.5 52h-3.5M82.7 63h-6M84.6 75h-3.5M85.4 85h-7M87.6 97h-3.5" fill="none" stroke="#050505" stroke-width="2.6" stroke-linecap="butt"/>    <rect x="50" y="43" width="12" height="16" rx="2" fill="#F4F4F5"/><rect x="67" y="42" width="12" height="17" rx="2" fill="#F4F4F5"/><rect x="55" y="49" width="5" height="6.5" fill="#050505"/><rect x="72" y="48" width="5" height="6.5" fill="#050505"/>    <path d="M57 67H73L70 75H60.5Z" fill="#050505"/>    <rect x="25" y="108" width="78" height="11" rx="2" fill="#F4F4F5" transform="rotate(-.8 64 113)"/>  </g></symbol>
@@ -148,7 +149,7 @@
     <div><dt>Instruments</dt><dd>9</dd></div>
     <div><dt>Fingering charts</dt><dd>5</dd></div>
     <div><dt>Question quizzes</dt><dd>10</dd></div>
-    <div><dt>Answers Mel knows</dt><dd id="mqn">155</dd></div>
+    <div><dt>Answers Mel knows</dt><dd id="mqn">255</dd></div>
   </dl>
 </section>
 <section class="index" aria-labelledby="idx-h">
@@ -332,10 +333,12 @@
 <script src="config.js?v=8"></script>
 <script src="brain.js?v=8"></script>
 <script src="questions.js?v=8"></script>
+<script src="questions-extra.js?v=9"></script>
 <script src="app.js?v=8"></script>
+<script src="activity.js?v=9"></script>
 <script>
 var stale=window.MB_VER!==8||typeof QA==='undefined'||typeof BRAIN==='undefined'||getComputedStyle(document.documentElement).getPropertyValue('--mbv').trim()!=='8';
-if(stale||!window.MB_OK){var d=document.createElement('div');d.className='stale';d.textContent=stale?'Heads up: part of this site is an old copy or missing. Upload every file from the newest version (index.html, app.js, brain.js, questions.js, styles.css, config.js) to the site, then press Ctrl+Shift+R to refresh.':'Something stopped the page from starting. Press F12, open the Console tab, and send the red message to the site owner.';document.body.prepend(d)}
+if(stale||!window.MB_OK){var d=document.createElement('div');d.className='stale';d.textContent=stale?'Heads up: part of this site is an old copy or missing. Upload every file from the newest version (index.html, app.js, brain.js, questions.js, questions-extra.js, activity.js, styles.css, polish.css, config.js) to the site, then press Ctrl+Shift+R to refresh.':'Something stopped the page from starting. Press F12, open the Console tab, and send the red message to the site owner.';document.body.prepend(d)}
 </script>
 </body>
 </html>

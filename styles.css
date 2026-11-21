@@ -642,3 +642,4 @@ input[type=range]::-webkit-slider-thumb { border-radius: 999px; } input[type=ran
 .lm, .logo svg { stroke-linejoin: round; }
 @media (max-width: 560px) { .gl { width: 64px; height: 64px; } .stories { gap: 8px; } }
 .ph .av svg { width: 28px; height: 28px; }
+.mel svg { width: 56px; height: 56px; } .drawer header b svg { width: 34px; height: 34px; }

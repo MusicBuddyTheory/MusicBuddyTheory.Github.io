@@ -1,0 +1,100 @@
+/* ==========================================================================
+   Music Buddy Theory: polish layer (loads AFTER styles.css)
+   1) darker-blue accents for contrast
+   2) roomier fingering controls so they are easy to play on a phone
+   3) the 7-day activity strip in the warm-up card
+   ========================================================================== */
+
+:root {
+  --navy: #0f2a7a;    /* mid-dark blue: tracks, chips, bar fills' backgrounds */
+  --navy2: #081640;   /* deepest blue: corner accents, panels, keys */
+  --navy3: #0b1f5c;   /* hover tint on navy surfaces */
+}
+
+/* ---------- 1) dark blue details ---------- */
+
+/* a deep-blue quarter circle tucked into the top-right corner of every panel */
+.bx, .box {
+  background-image: radial-gradient(circle at 100% 0, var(--navy2) 0, var(--navy2) 56px, transparent 57px);
+}
+
+/* instrument tiles get a navy corner under the label */
+.story > * { position: relative; z-index: 1; }
+.story::after {
+  content: ""; position: absolute; right: 0; bottom: 0; width: 40px; height: 40px;
+  border-top-left-radius: 100%; border-bottom-right-radius: var(--rr2, 20px);
+  background: var(--navy2); pointer-events: none;
+}
+.story.on::after { background: var(--navy); }
+
+/* plate and bench labels become small navy chips */
+.ph::before {
+  justify-self: start; padding: 4px 11px; background: var(--navy2);
+  border: 1px solid var(--navy); border-radius: 999px; color: var(--hi);
+}
+.bhead::before {
+  padding: 4px 11px; background: var(--navy2); border: 1px solid var(--navy);
+  border-radius: 999px; color: var(--hi);
+}
+.ph .av { background: var(--navy2); border-color: var(--navy); }
+
+/* hero figures alternate between black and deep blue */
+.facts > div { padding-bottom: 16px; }
+.facts > div:first-child { padding-left: 18px; }
+.facts > div:nth-child(odd) { background: var(--navy2); }
+@media (max-width: 640px) { .facts > div:nth-child(n+3) { margin-top: 0; } }
+
+/* progress tracks and carousel dots */
+.bar, .wbar { background: var(--navy); }
+.dots i { background: var(--navy); }
+.dots i.on { background: var(--blue); }
+
+/* fingering chart, pitch pad and valves */
+.fc:nth-child(even) { background: var(--navy2); }
+.fc:hover, .fc:nth-child(even):hover { background: var(--navy3); }
+.fc.on, .fc.on:nth-child(even) { background: var(--blue); }
+.pn.blk { background: var(--navy2); color: var(--ink); }
+.pn.blk:hover { background: var(--navy3); }
+.pn.blk[aria-pressed=true] { background: var(--blue); color: #050505; }
+.vb { background: var(--navy2); }
+.vb:hover { background: var(--navy3); }
+.vb.down, .vb.down:hover { background: var(--blue); }
+
+/* footer as a deep-blue panel; the phone tab bar too */
+.foot {
+  margin: 0 0 32px; padding: 22px 24px; background: var(--navy2);
+  border: 1px solid var(--navy); border-radius: var(--rr2, 20px);
+}
+@media (max-width: 999px) { .tabs { background: var(--navy2); } }
+
+/* ---------- 2) fingering controls: more room, bigger targets ---------- */
+.fctl { gap: 24px 30px; margin: 14px 0 30px; }
+.vb { width: 86px; height: 110px; }
+.vb.pos { width: 60px; height: 70px; }
+.reg { gap: 22px; margin: 20px 0 10px; }
+
+@media (max-width: 700px) {
+  .fctl { gap: 22px 22px; margin: 16px 0 30px; }
+  /* valves share one row and stretch to fill it */
+  .vb { flex: 1 1 0; min-width: 0; max-width: 100px; width: auto; height: 116px; font-size: 30px; }
+  /* the Open button gets its own wide row above the valves */
+  .vb.op { flex: 1 1 100%; max-width: none; height: 64px; flex-direction: row; gap: 12px; }
+  /* trombone positions: four per row, then three */
+  .vb.pos { flex: 0 0 calc(25% - 17px); max-width: none; width: auto; height: 74px; font-size: 24px; }
+  .reg .btn { min-width: 58px; padding: 14px 20px; }
+  .playpad { margin-top: 30px; padding-top: 16px; }
+  .chk { margin-top: 18px; }
+  .fchart { margin-top: 28px; }
+}
+
+/* ---------- 3) activity strip (built by activity.js) ---------- */
+.wact {
+  display: flex; align-items: flex-end; gap: 8px; height: 86px; margin-top: 22px; padding: 12px 14px 8px;
+  background: var(--navy2); border: 1px solid var(--navy); border-radius: var(--rr, 14px);
+}
+.wd { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 6px; height: 100%; }
+.wd i { display: block; width: 100%; max-width: 26px; min-height: 4px; border-radius: 6px 6px 3px 3px; background: var(--navy); }
+.wd.on i { background: var(--blue); }
+.wd small { font: 500 10px var(--mono); color: var(--dim); }
+.wd.now small { color: var(--hi); }
+.wat { margin-top: 10px; }

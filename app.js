@@ -211,10 +211,19 @@ const sharpSym='<g class="ks"><path d="M-2.2 -8V9M2.4 -9V8" stroke-width="1.3"/>
 const flatSym='<g class="ks"><path d="M-3 -14V6" stroke-width="1.5"/><path d="M-3 6C9 -1 8 -9 -3 -4" stroke-width="1.7"/></g>';
 function staffSVG(o){
   const bass=o.clef=='b',bd=bass?18:30,ki=o.ki,kn=ki?ki.n:0,x0=44+(kn?kn*9+8:0),ts=o.time?26:0,mw=o.mw||150,mpl=o.mpl||2,len=o.len||1,
-    lines=Math.ceil(len/mpl),SY=o.labels?154:118,T=40,xs=x0+ts,W=xs+Math.min(mpl,len)*mw+8,H=lines*SY,
+    lines=Math.ceil(len/mpl),SY=o.labels?154:118,T=40,xs=x0+ts,W=xs+Math.min(mpl,len)*mw+8,
     yOf=(y0,d)=>y0+40-(d-bd)*5;
+  /* Tight layout (phones): each line is only as tall as its clef and notes need, instead of a fixed 118 (or 154 with labels). */
+  const LY=[];let H=lines*SY;
+  for(let ln=0;ln<lines;ln++)LY[ln]=ln*SY+T;
+  if(o.tight){const lo=Array(lines).fill(-16),hi=Array(lines).fill(66);
+    (o.notes||[]).forEach(n=>{const ln=Math.floor(Math.floor(n.beat/4+1e-6)/mpl),r=40-(n.dia-bd)*5,up=n.dia<bd+4,stem=n.dur!='w';
+      lo[ln]=Math.min(lo[ln],r-(up&&stem?40:10));hi[ln]=Math.max(hi[ln],r+(!up&&stem?40:10));
+      if(o.labels)hi[ln]=Math.max(hi[ln],118)});
+    let y=0;for(let ln=0;ln<lines;ln++){LY[ln]=y-lo[ln];y=LY[ln]+hi[ln]+4}
+    H=y}
   let s='';
-  for(let ln=0;ln<lines;ln++){const y0=ln*SY+T,nm_=Math.min(mpl,len-ln*mpl),xe=xs+nm_*mw,last=ln==lines-1;
+  for(let ln=0;ln<lines;ln++){const y0=LY[ln],nm_=Math.min(mpl,len-ln*mpl),xe=xs+nm_*mw,last=ln==lines-1;
     for(let i=0;i<5;i++)s+=`<line class="ln" x1="6" x2="${xe}" y1="${y0+i*10}" y2="${y0+i*10}"/>`;
     s+=`<line class="bar" x1="6" x2="6" y1="${y0}" y2="${y0+40}"/>`;
     for(let j=1;j<=nm_;j++){const x=xs+j*mw;
@@ -225,9 +234,9 @@ function staffSVG(o){
     for(let i=0;i<kn;i++){const d=(ki.sharp?SHP:FLT)[i]-(bass?14:0);s+=`<g transform="translate(${44+i*9} ${yOf(y0,d)})">${ki.sharp?sharpSym:flatSym}</g>`}
     if(o.time&&ln==0)s+=`<text class="ts" x="${x0+11}" y="${y0+19}">4</text><text class="ts" x="${x0+11}" y="${y0+39}">4</text>`}
   const ns=(o.notes||[]).map((n,i)=>{const m=Math.floor(n.beat/4+1e-6),ln=Math.floor(m/mpl),j=m%mpl,bm=n.beat-m*4;
-    return{...n,i,ln,x:xs+j*mw+18+bm*(mw-30)/4,y:yOf(ln*SY+T,n.dia)}});
+    return{...n,i,ln,x:xs+j*mw+18+bm*(mw-30)/4,y:yOf(LY[ln],n.dia)}});
   ns.forEach((n,i)=>{const q=ns[i+1];if(n.dur=='e'&&!n.sk&&q&&q.dur=='e'&&q.ln==n.ln&&Math.abs(q.beat-n.beat-.5)<.01){n.pr=q;q.sk=1}});
-  ns.forEach(n=>{const y0=n.ln*SY+T,k0=n.dia-bd;let g='';
+  ns.forEach(n=>{const y0=LY[n.ln],k0=n.dia-bd;let g='';
     if(k0<0)for(let k=-2;k>=k0;k-=2)g+=`<line class="ld" x1="${n.x-10}" x2="${n.x+10}" y1="${y0+40-k*5}" y2="${y0+40-k*5}"/>`;
     if(k0>8)for(let k=10;k<=k0;k+=2)g+=`<line class="ld" x1="${n.x-10}" x2="${n.x+10}" y1="${y0+40-k*5}" y2="${y0+40-k*5}"/>`;
     g+=`<ellipse class="hd${n.dur=='h'||n.dur=='w'?' o':''}" cx="${n.x}" cy="${n.y}" rx="6" ry="4.4" transform="rotate(-20 ${n.x} ${n.y})"/>`;
@@ -287,6 +296,12 @@ function genDeck(){const out=[],names=new Set();
     if(out.length>=6)break}
   return out}
 const show=(el,on)=>{el.style.display=on?'':'none'};
+const phone=()=>matchMedia('(max-width:700px)').matches;
+/* on a phone, bring the staff and the valves into view together when you start playing, so you can see the notes while you finger them */
+function dock(){if(!phone())return;const b=$('#pbox').getBoundingClientRect(),c=$('#pctl').getBoundingClientRect(),dStaff=b.top-8,dPad=c.bottom-(innerHeight-10);
+  const d=dStaff<0?dStaff:dPad>0?Math.min(dPad,dStaff):0;if(Math.abs(d)>1)scrollBy({top:d,behavior:'smooth'})}
+['#pgo','#plisten','#dpick'].forEach(id=>{const e=$(id);if(e)e.addEventListener('click',()=>setTimeout(dock,150))});
+matchMedia('(max-width:700px)').addEventListener('change',()=>{try{pDraw()}catch(e){}});
 function pUI(){const sc=P.mode=='scale',st=P.stage;
   show($('#pkl'),sc);show($('#pml'),sc);show($('#plenl'),!sc);
   show($('#pfind'),!sc&&st=='find');show($('#pdeck'),!sc&&st=='browse');
@@ -295,7 +310,7 @@ function pUI(){const sc=P.mode=='scale',st=P.stage;
 function pDraw(){const f=cfg(),hint=$('#phint').checked,N_=P.notes;
   /* green = played right the first time, red = missed at least once. Once a note is passed it keeps its color. */
   const st=i=>P.listening?(i==P.cur?'on':''):P.practice?(i<P.idx?(N_[i].miss?'bad':'ok'):i==P.idx?((P.flash||N_[i].miss)?'bad':'on'):''):(P.done?(N_[i].miss?'bad':'ok'):'');
-  $('#pstaff').innerHTML=staffSVG({clef:P.clef,ki:P.ki,len:P.len||4,mpl:2,time:true,labels:hint,alt:'Music to play, '+N_.length+' notes',
+  $('#pstaff').innerHTML=staffSVG({clef:P.clef,ki:P.ki,len:P.len||4,mpl:2,time:true,labels:hint,tight:phone(),alt:'Music to play, '+N_.length+' notes',
     notes:N_.map((n,i)=>({...n,state:st(i),lb:hint?fingTxt(n.snd,f,true):''}))})}
 function pMsg(t){$('#pmsg').innerHTML=t}
 function pStatus(){const f=cfg(),n=P.notes[P.idx],hint=$('#phint').checked;
@@ -748,11 +763,46 @@ $('#drone').addEventListener('click',()=>{if(qon>=0){qStop();qUI();$('#qps').tex
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&qon>=0){qStop();qUI()}});
 qUI();
 
+/* ===== Woodwind fingerings (finder only) =====
+   Written pitch as MIDI numbers (middle C = 60). In each pattern the part before the | is the left hand and the part after it is the right hand.
+   T = left thumb (hole or B key), O = octave key, 1 2 3 = fingers. Anything else is in the extra text.
+   Flute: C4 to B4, and D5 to B5 (the second octave uses the same fingerings, with faster air).
+   Clarinet: the natural notes G3 to G4, plus D5 to C6 with the register key. Sax: B♭3 to C♯6, written, so alto, tenor and bari are the same. */
+const WW=(()=>{
+ const P=s=>{const [a,b]=s.split('|');return {l:[/[TO]/.test(a),a.includes('1'),a.includes('2'),a.includes('3')],r:[b.includes('1'),b.includes('2'),b.includes('3')]}};
+ const add=(f,m,pat,x)=>{f[m]={...P(pat),x:x||''}};
+ const fl={};
+ [[60,'T123|123','C key, right pinky'],[61,'T123|123','C♯ key, right pinky'],[62,'T123|123'],[63,'T123|123','E♭ key, right pinky'],[64,'T123|12'],[65,'T123|13'],[66,'T123|2'],[67,'T123|'],[68,'T123|','G♯ key, left pinky'],[69,'T12|'],[70,'1|','B♭ thumb lever (not the B key)'],[71,'T1|']].forEach(([m,p,x])=>{add(fl,m,p,x);if(m>=62)add(fl,m+12,p,x)});
+ const cl={},CL=[[55,'T123|123'],[57,'T123|12'],[59,'T123|1'],[60,'T123|'],[62,'T12|'],[64,'T1|'],[65,'T|']];
+ CL.forEach(([m,p])=>{add(cl,m,p);add(cl,m+19,p,'register key (left thumb)')});add(cl,67,'|','no fingers down');
+ const sx={},SX=[[58,'123|123','low B♭ key, left pinky'],[59,'123|123','low B key, left pinky'],[60,'123|123','low C key, right pinky'],[61,'123|123','low C♯ key, left pinky'],[62,'123|123'],[63,'123|123','E♭ key, right pinky'],[64,'123|12'],[65,'123|1'],[66,'123|2'],[67,'123|'],[68,'123|','G♯ key, left pinky'],[69,'12|'],[70,'1|','bis key (the small key by the B key), or left 1 with right 1'],[71,'1|'],[72,'2|'],[73,'|','no fingers down']];
+ SX.forEach(([m,p,x])=>{add(sx,m,p,x);if(m>=62)add(sx,m+12,'O'+p,x)});
+ return {
+  flute:{n:'Flute',sf:'flute',off:0,k:'thumb',f:fl,cover:'C4 to B4 and D5 to B5',h:'Second octave: same fingerings, faster air.'},
+  clarinet:{n:'Clarinet',sf:'clarinet',off:2,k:'thumb',f:cl,cover:'the natural notes G3 to G4 and D5 to C6 (sharps and flats are not added yet)',h:'The thumb covers the back hole.'},
+  sax:{n:'Saxophone',sf:'alto_sax',off:9,k:'octave key',f:sx,cover:'B♭3 to C♯6',h:'Same on alto, tenor and bari.'}}})();
+let ww=null,wwFk=null;
+function wwSVG(p){const c=(x,on)=>`<circle cx="${x}" cy="10" r="${on?5:4.4}" ${on?'fill="currentColor"':'fill="none" stroke="currentColor" stroke-opacity=".5" stroke-width="1.3"'}/>`;
+  return `<svg viewBox="0 0 96 20" width="96" height="20" aria-hidden="true" focusable="false" style="display:block;margin:6px 0 2px;color:#2F6BFF">${p.l.map((v,i)=>c(6+i*12,v)).join('')}<path d="M54 3v14" stroke="currentColor" stroke-opacity=".35" stroke-width="1.2" stroke-linecap="round"/>${p.r.map((v,i)=>c(64+i*12,v)).join('')}</svg>`}
+function wwSay(w,p,nm,o){const L=[p.l[0]?w.k:'',...[1,2,3].filter(i=>p.l[i]).map(String)].filter(Boolean),R=[1,2,3].filter(i=>p.r[i-1]);
+  return `${nm}${o}: left hand ${L.join(', ')||'nothing'}; right hand ${R.join(', ')||'nothing'}${p.x?'; '+p.x:''}`}
+function fqRunWW(){const w=WW[ww],raw=$('#fqn').value,h=$('#fqh'),out=$('#fqr');
+  h.textContent=`Written pitch, like your music. Dots: left hand (${w.k}, 1 2 3), then right hand (1 2 3). Filled means press. ${w.h} Tap a card to hear it.`;
+  const t=raw.toLowerCase().replace(/♭/g,'b').replace(/♯/g,'#').replace(/flat/g,'b').replace(/sharp/g,'#').replace(/\s+/g,''),m=t.match(/^([a-g])(#|b)?(\d)?$/);
+  if(!t){out.innerHTML='';return}
+  if(!m){out.innerHTML='<p class="mut">Type a note name like C, B♭3 or f sharp.</p>';return}
+  const acc=m[2]=='#'?1:m[2]=='b'?-1:0,pc=NOTE_PC[m[1]]+acc,nm=m[1].toUpperCase()+(acc>0?'♯':acc<0?'♭':''),rows=[];
+  for(const o of (m[3]!=null?[+m[3]]:[0,1,2,3,4,5,6,7])){const wr=12*(o+1)+pc,p=w.f[wr];
+    if(p)rows.push(`<button class="fr" type="button" data-s="${wr-w.off}" data-sf="${w.sf}" aria-label="${esc(wwSay(w,p,nm,o))}"><b>${nm}<sub>${o}</sub></b>${wwSVG(p)}${p.x?`<span>${esc(p.x)}</span>`:''}</button>`)}
+  out.innerHTML=rows.length?rows.join(''):`<p class="mut">${nm}${m[3]!=null?m[3]:''} is not in the ${w.n.toLowerCase()} chart yet. This chart covers ${w.cover}.</p>`}
+
 /* ===== Fingering finder ===== */
-$('#fqi').innerHTML=Object.entries(FI).map(([k,f])=>`<option value="${k}">${f.n}</option>`).join('');
+$('#fqi').innerHTML='<optgroup label="Brass">'+Object.entries(FI).map(([k,f])=>`<option value="${k}">${f.n}</option>`).join('')+'</optgroup><optgroup label="Woodwinds">'+Object.entries(WW).map(([k,w])=>`<option value="w:${k}">${w.n}</option>`).join('')+'</optgroup>';
 const FQ_TRY=['B♭','F♯','E♭3','C','A4','D'];
-$('#fqs').innerHTML='<span class="mut">Try</span>'+FQ_TRY.map(t=>`<button class="chip" type="button" data-t="${esc(t)}">${esc(t)}</button>`).join('');
-function fqRun(){const f=cfg(),raw=$('#fqn').value,h=$('#fqh'),out=$('#fqr');
+const FQ_TRY_W=['B♭4','F♯4','G4','A4','E4','B4'];
+function fqChips(){const L=ww?FQ_TRY_W:FQ_TRY;$('#fqs').innerHTML='<span class="mut">Try</span>'+L.map(t=>`<button class="chip" type="button" data-t="${esc(t)}">${esc(t)}</button>`).join('')}
+fqChips();
+function fqRun(){if(ww){fqChipsOnce();fqRunWW();return}fqChipsOnce();const f=cfg(),raw=$('#fqn').value,h=$('#fqh'),out=$('#fqr');
   h.textContent=`Notes are written the way your ${FI[fk].n.toLowerCase()} reads them${f.off?' (not concert pitch)':''}. Click a result to hear it.`;
   const t=raw.toLowerCase().replace(/♭/g,'b').replace(/♯/g,'#').replace(/flat/g,'b').replace(/sharp/g,'#').replace(/\s+/g,''),m=t.match(/^([a-g])(#|b)?(\d)?$/);
   if(!t){out.innerHTML='';return}
@@ -761,13 +811,14 @@ function fqRun(){const f=cfg(),raw=$('#fqn').value,h=$('#fqh'),out=$('#fqr');
   for(const o of (m[3]!=null?[+m[3]]:[0,1,2,3,4,5,6,7])){const w=12*(o+1)+pc,snd=w-f.off;
     if(fingerFor(snd,f))rows.push(`<button class="fr" type="button" data-s="${snd}"><b>${nm}<sub>${o}</sub></b><span>${fingTxt(snd,f)}</span></button>`)}
   out.innerHTML=rows.length?rows.join(''):`<p class="mut">${nm}${m[3]!=null?m[3]:''} is outside the range of the ${FI[fk].n.toLowerCase()}. Try another octave.</p>`}
-function fqSync(){const s=$('#fqi');if(s.value!=fk)s.value=fk;fqRun()}
+let chipsFor=null;function fqChipsOnce(){if(chipsFor!==!!ww){chipsFor=!!ww;fqChips()}}
+function fqSync(){const s=$('#fqi');if(ww&&fk===wwFk){s.value='w:'+ww;fqRun();return}ww=null;if(s.value!=fk)s.value=fk;fqRun()}
 window.fqSync=fqSync;
 $('#fqn').oninput=fqRun;
-$('#fqi').onchange=e=>{setInst(e.target.value);e.target.blur()};
+$('#fqi').onchange=e=>{const v=e.target.value;if(v.slice(0,2)=='w:'){ww=v.slice(2);wwFk=fk;fqRun()}else{ww=null;setInst(v)}e.target.blur()};
 $('#fqs').onclick=e=>{const b=e.target.closest('.chip');if(!b)return;$('#fqn').value=b.dataset.t;fqRun();$('#fqn').focus()};
-$('#fqr').onclick=async e=>{const b=e.target.closest('.fr');if(!b)return;const f=cfg(),snd=+b.dataset.s;cx();$$('#fqr .fr').forEach(x=>x.classList.toggle('on',x===b));
-  try{await noteSeq(f.sf||FI[fk].sf,[[-1,snd]],1.3,0)}catch(err){synth(hz(snd),cx().currentTime+.05,1)}};
+$('#fqr').onclick=async e=>{const b=e.target.closest('.fr');if(!b)return;const f=cfg(),snd=+b.dataset.s,sf=b.dataset.sf||f.sf||FI[fk].sf;cx();$$('#fqr .fr').forEach(x=>x.classList.toggle('on',x===b));
+  try{await noteSeq(sf,[[-1,snd]],1.3,0)}catch(err){synth(hz(snd),cx().currentTime+.05,1)}};
 $('#fqn').value='B♭';fqSync();
 
 /* ===== Chord builder ===== */

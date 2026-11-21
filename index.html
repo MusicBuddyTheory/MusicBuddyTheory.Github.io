@@ -15,6 +15,28 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
 <link rel="stylesheet" href="styles.css?v=8">
 <link rel="stylesheet" href="polish.css?v=9">
+<style id="mobile-play">
+/* Phones: pull the staff, the buttons and the fingering pad close together so you can see the music while you finger it. */
+@media (max-width:700px){
+  #playpage .pad{padding:12px 12px 14px}
+  #playpage .row{gap:8px}
+  #playpage .row.end{gap:8px;margin-top:10px!important}
+  #playpage .row.end>label{flex:1 1 calc(50% - 8px);min-width:0;margin:0}
+  #playpage .row.end>label select{width:100%}
+  #playpage .row.end>label:has(#ptempo){flex-basis:100%}
+  #playpage #pbox{margin:8px 0 0!important;padding:4px 2px!important}
+  #playpage #pstaff svg{display:block;width:100%;height:auto}
+  #playpage #plegend{margin:4px 0 0!important;font-size:12px}
+  #playpage #pmsg{margin:6px 0 0!important;min-height:0!important}
+  #playpage #pmsg:empty{display:none}
+  #playpage #pacts{margin-top:8px!important;gap:8px}
+  #playpage .playpad{margin-top:6px!important;padding-top:0!important}
+  #playpage .playpad>*{margin-top:0!important;margin-bottom:0!important}
+  #playpage .playpad .read{margin:6px 0 2px!important}
+  #playpage .playpad .row{margin-top:4px!important}
+  #playpage #phelp{margin:4px 0 0!important;font-size:12.5px}
+}
+</style>
 </head>
 <body>
 <!-- Music Buddy icons v6: paste this whole block on the line right after <body>. It sits above the old icon definitions, so these versions are the ones the page uses. If you pasted an earlier version of this block, delete it first. v6 adds a detailed g-sax and a more detailed g-horn. -->
@@ -473,7 +495,7 @@
 <script src="brain.js?v=8"></script>
 <script src="questions.js?v=10"></script>
 <script src="questions-extra.js?v=9"></script>
-<script src="app.js?v=10"></script>
+<script src="app.js?v=11"></script>
 <script src="activity.js?v=9"></script>
 <script src="warmup.js?v=10"></script>
 <script>

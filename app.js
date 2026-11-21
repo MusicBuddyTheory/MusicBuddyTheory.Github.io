@@ -599,31 +599,40 @@ let hist=[],busy=false,pend=null;
 let KB=[];fetch('knowledge.json').then(r=>r.ok?r.json():[]).then(j=>{if(Array.isArray(j))KB=j}).catch(()=>{});
 const taught=()=>{try{const j=JSON.parse(ls('mb-taught')||'[]');return Array.isArray(j)?j.filter(x=>Array.isArray(x)&&typeof x[0]=='string'&&typeof x[1]=='string').slice(-50):[]}catch(e){return[]}};
 const words=t=>t.toLowerCase().match(/[a-z0-9♯♭#]+/g)||[];
-function recall(l){const w=new Set(words(l));let best=null,bs=0;
-  for(const [q,a] of [...KB.filter(x=>x&&typeof x.q=='string'&&typeof x.a=='string').map(x=>[x.q,x.a]),...taught()]){const qw=words(q),n=qw.filter(x=>w.has(x)).length,sc=n/Math.max(qw.length,w.size,1);if(sc>bs){bs=sc;best=a}}
-  return bs>=.6?best:null}
+/* Match on the real keywords only (kw and dice are defined just below), so filler words like "what is a" can never make two different questions look alike. */
+function recall(l,list){const u=kw(l);let best=null,bs=0;
+  for(const [q,a] of list){const s=dice(kw(q),u);if(s>bs){bs=s;best=a}}
+  return bs>=.75?best:null}
+const kbList=()=>KB.filter(x=>x&&typeof x.q=='string'&&typeof x.a=='string').map(x=>[x.q,x.a]);
 const BR=typeof BRAIN!=='undefined'?BRAIN:[];
 /* ----- the known questions (questions.js): Mel finds the closest one to what you type ----- */
 const QAL=typeof QA!=='undefined'?QA:[];
-const STOP=new Set('what is the a an of does do mean means meaning define how to in on for and or me tell about explain can you i it are why when which who my your with at be by this that there their music musical'.split(' '));
+const STOP=new Set('what is the a an of does do mean means meaning define how to in on for and or me tell about explain can you i it are why when which who my your with at be by this that there their music musical s whats'.split(' '));
 const SYN={'16th':'sixteenth','8th':'eighth','32nd':'thirtysecond','tempo':'tempo','minor':'minor','maj':'major','min':'minor'};
 const stem=w=>w.length>4?w.replace(/ies$/,'y').replace(/(ing|ed|es|s)$/,''):w;
 const kw=t=>[...new Set((t.toLowerCase().replace(/[-]/g,' ').match(/[a-z0-9♯♭#\/\.]+/g)||[]).map(x=>x.replace(/\.$/,'')).map(x=>SYN[x]||x).filter(x=>x&&!STOP.has(x)).map(stem))];
 QAL.forEach(x=>x.k=kw(x.q));
+{const mq=document.getElementById('mqn');if(mq&&QAL.length)mq.textContent=QAL.length}
 const dice=(a,b)=>{if(!a.length||!b.length)return 0;const s=new Set(b);return 2*a.filter(x=>s.has(x)).length/(a.length+b.length)};
 const nearest=(t,n)=>{const u=kw(t);return QAL.map(x=>({x,s:dice(x.k,u)})).sort((p,q)=>q.s-p.s).slice(0,n)};
 /* did the student name a key, like "B flat major" or "in D"? Then the key calculator answers instead of the general question. */
 const hasKey=t=>/\b[A-G]\s*(flat|sharp|[♭♯#])/.test(t)||/\b[A-G][b#♭♯]\s*(major|minor|scale|key|chord)/.test(t)||/\b(in|of|for)\s+[A-G]\b/.test(t)||/\b[A-G]\s+(major|minor)\b/.test(t);
-function known(t){if(hasKey(t))return null;let best=null,bs=0;for(const x of QAL){if(x.c=='Every key')continue;const s=dice(x.k,kw(t));if(s>bs){bs=s;best=x}}return bs>=.75?best:null}
+const norm=t=>t.toLowerCase().replace(/[^a-z0-9♯♭#]+/g,' ').trim();
+function known(t){const n=norm(t),ex=QAL.find(x=>x.c!='Every key'&&norm(x.q)==n);if(ex)return ex;
+  if(hasKey(t))return null;let best=null,bs=0;for(const x of QAL){if(x.c=='Every key')continue;const s=dice(x.k,kw(t));if(s>bs){bs=s;best=x}}return bs>=.75?best:null}
 const chip=q=>`<button class="chip sug" type="button">${esc(q)}</button>`;
 function suggest(t){const near=nearest(t,3).filter(o=>o.s>=.2);
   if(near.length)return `I do not have that one exactly. Did you mean:<div class="sugs">${near.map(o=>chip(o.x.q)).join('')}</div>`;
   return `I do not know that one yet. Here are some questions I can answer:<div class="sugs">${shuf(QAL.filter(x=>x.c!='Every key')).slice(0,3).map(o=>chip(o.q)).join('')}</div>Or tap <b>All questions</b> to see everything I know.`}
-function local(t){const l=t.toLowerCase(),r=recall(l);
+/* Mel's own knowledge, in order: what you taught him, then the 255 known questions, then the older knowledge.json notes. */
+function preloaded(t){const l=t.toLowerCase(),r=recall(l,taught());
   if(r)return esc(r)+' <span class="mut">(you taught me this)</span>';
   const k=known(t);if(k)return k.a;
+  const b=recall(l,kbList());if(b)return esc(b);
+  return null}
+function local(t){const p=preloaded(t);if(p)return p;
   let c=null;try{c=calc(t)}catch(e){}if(c)return c;
-  const b=BR.find(x=>x[0].test(l));if(b)return b[1];
+  const l=t.toLowerCase(),b=BR.find(x=>x[0].test(l));if(b)return b[1];
   const a=A.find(a=>a[0].test(l));if(a)return a[1];
   return suggest(t)}
 const melStat=s=>{const e=$('#mst');if(e)e.textContent=s};
@@ -637,7 +646,8 @@ async function ask(t){
     if(/^(no|nah|skip|nevermind|never mind)\b/i.test(t.trim())){say('No worries. Ask me anything else.','bot');return}
     const k=taught();k.push([q,t.slice(0,600)]);ls('mb-taught',JSON.stringify(k.slice(-50)));
     say('Got it, saved on this device. Ask me again and I will remember.','bot');return}
-  if(!MEL_API){setTimeout(()=>say(local(t),'bot'),450);return}
+  const pre=preloaded(t);
+  if(pre||!MEL_API){setTimeout(()=>say(pre||local(t),'bot'),450);return}
   busy=true;hist.push({role:'user',content:t.slice(0,500)});hist=hist.slice(-12);
   while(hist.length&&hist[0].role!='user')hist.shift();
   const tp=document.createElement('div');tp.className='m';tp.textContent='Mel is thinking…';log.append(tp);log.scrollTop=log.scrollHeight;

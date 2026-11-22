@@ -765,22 +765,33 @@ qUI();
 
 /* ===== Woodwind fingerings (finder only) =====
    Written pitch as MIDI numbers (middle C = 60). In each pattern the part before the | is the left hand and the part after it is the right hand.
-   T = left thumb (hole or B key), O = octave key, 1 2 3 = fingers. Anything else is in the extra text.
-   Flute: C4 to B4, and D5 to B5 (the second octave uses the same fingerings, with faster air).
-   Clarinet: the natural notes G3 to G4, plus D5 to C6 with the register key. Sax: B♭3 to C♯6, written, so alto, tenor and bari are the same. */
+   T = left thumb (the hole on clarinet, the B lever on flute), O = octave key, 1 2 3 = fingers. Pinky, side and palm keys are in the extra text.
+   Source: the Woodwind Fingering Guide (wfg.woodwind.org, Timothy Reichard), basic fingerings.
+   Flute: B3 to A6. Clarinet: E3 to G6. Sax: B♭3 to F6, written, so alto, tenor and bari are the same. */
 const WW=(()=>{
  const P=s=>{const [a,b]=s.split('|');return {l:[/[TO]/.test(a),a.includes('1'),a.includes('2'),a.includes('3')],r:[b.includes('1'),b.includes('2'),b.includes('3')]}};
- const add=(f,m,pat,x)=>{f[m]={...P(pat),x:x||''}};
- const fl={};
- [[60,'T123|123','C key, right pinky'],[61,'T123|123','C♯ key, right pinky'],[62,'T123|123'],[63,'T123|123','E♭ key, right pinky'],[64,'T123|12'],[65,'T123|13'],[66,'T123|2'],[67,'T123|'],[68,'T123|','G♯ key, left pinky'],[69,'T12|'],[70,'1|','B♭ thumb lever (not the B key)'],[71,'T1|']].forEach(([m,p,x])=>{add(fl,m,p,x);if(m>=62)add(fl,m+12,p,x)});
- const cl={},CL=[[55,'T123|123'],[57,'T123|12'],[59,'T123|1'],[60,'T123|'],[62,'T12|'],[64,'T1|'],[65,'T|']];
- CL.forEach(([m,p])=>{add(cl,m,p);add(cl,m+19,p,'register key (left thumb)')});add(cl,67,'|','no fingers down');
- const sx={},SX=[[58,'123|123','low B♭ key, left pinky'],[59,'123|123','low B key, left pinky'],[60,'123|123','low C key, right pinky'],[61,'123|123','low C♯ key, left pinky'],[62,'123|123'],[63,'123|123','E♭ key, right pinky'],[64,'123|12'],[65,'123|1'],[66,'123|2'],[67,'123|'],[68,'123|','G♯ key, left pinky'],[69,'12|'],[70,'1|','bis key (the small key by the B key), or left 1 with right 1'],[71,'1|'],[72,'2|'],[73,'|','no fingers down']];
- SX.forEach(([m,p,x])=>{add(sx,m,p,x);if(m>=62)add(sx,m+12,'O'+p,x)});
+ const mk=rows=>{const f={};rows.forEach(([m,p,x])=>{f[m]={...P(p),x:x||''}});return f};
+ const EB='E♭ key, right pinky',BB='or B♭ thumb lever with left 1';
+ const fl=mk([
+  [59,'T123|123','B key, right pinky (B-foot flutes only)'],[60,'T123|123','C key, right pinky'],[61,'T123|123','C♯ key, right pinky'],[62,'T123|123'],[63,'T123|123',EB],
+  [64,'T123|12'],[65,'T123|1'],[66,'T123|3'],[67,'T123|'],[68,'T123|','G♯ key, left pinky'],[69,'T12|'],[70,'T1|1',BB],[71,'T1|'],[72,'1|','no thumb'],[73,'|','only the E♭ key (right pinky)'],
+  [74,'T23|123'],[75,'T23|123',EB],[76,'T123|12'],[77,'T123|1'],[78,'T123|3'],[79,'T123|'],[80,'T123|','G♯ key, left pinky'],[81,'T12|'],[82,'T1|1',BB],[83,'T1|'],[84,'1|','no thumb'],[85,'|','only the E♭ key (right pinky)'],
+  [86,'T23|','advanced, high register'],[87,'T123|123','G♯ key (left pinky) and E♭ key (right pinky); advanced'],[88,'T12|12','advanced'],[89,'T13|1','advanced'],[90,'T13|3','advanced'],[91,'123|','no thumb; advanced'],[92,'23|','G♯ key, left pinky; no thumb; advanced'],[93,'T2|1','advanced']]);
+ const R='register key';
+ const cl=mk([
+  [52,'T123|123','E key, a little finger (either hand)'],[53,'T123|123','F key, a little finger (either hand)'],[54,'T123|123','F♯ key, a little finger (either hand)'],[55,'T123|123'],[56,'T123|123','G♯ key, right little finger'],
+  [57,'T123|12'],[58,'T123|1'],[59,'T123|2'],[60,'T123|'],[61,'T123|','C♯ key, left little finger'],[62,'T12|'],[63,'T12|','lowest right side key (E♭/B♭)'],[64,'T1|'],[65,'T|'],
+  [66,'1|','thumb hole open'],[67,'|','no fingers'],[68,'|','side G♯ key (bottom of left index finger)'],[69,'|','A key (roll left index finger up)'],[70,'|',R+' and A key'],
+  [71,'T123|123',R+' and E key (a little finger)'],[72,'T123|123',R+' and F key (a little finger)'],[73,'T123|123',R+' and F♯ key (a little finger)'],[74,'T123|123',R],[75,'T123|123',R+' and G♯ key (right little finger)'],
+  [76,'T123|12',R],[77,'T123|1',R],[78,'T123|2',R],[79,'T123|',R],[80,'T123|',R+' and C♯ key (left little finger)'],[81,'T12|',R],[82,'T12|',R+' and lowest right side key (E♭/B♭)'],[83,'T1|',R],[84,'T|',R],
+  [85,'T23|12',R],[86,'T23|1',R+' and G♯ key (right little finger)'],[87,'T23|1',R+', B/F♯ sliver key and G♯ key (right little finger)'],[88,'T23|',R+' and G♯ key (right little finger)'],[89,'T23|',R+', C♯ key (left little finger) and G♯ key (right little finger)'],[90,'T2|',R+' and G♯ key (right little finger)'],[91,'T2|12',R+' and G♯ key (right little finger)']]);
+ const sx={},SX=[[58,'123|123','low B♭ key (left pinky) and low C key (right pinky)'],[59,'123|123','low B key (left pinky) and low C key (right pinky)'],[60,'123|123','low C key, right pinky'],[61,'123|123','low C♯ key (left pinky) and low C key (right pinky)'],[62,'123|123'],[63,'123|123','E♭ key, right pinky'],[64,'123|12'],[65,'123|1'],[66,'123|2'],[67,'123|'],[68,'123|','G♯ key, left pinky'],[69,'12|'],[70,'12|','right side B♭ key. Or left 1 with the bis key, or left 1 with right 1'],[71,'1|'],[72,'2|'],[73,'|','no fingers']];
+ SX.forEach(([m,p,x])=>{sx[m]={...P(p),x:x||''};if(m>=62)sx[m+12]={...P('O'+p),x:x||''}});
+ [[86,'palm D key'],[87,'palm D and E♭ keys'],[88,'palm D and E♭ keys, and the right side E key'],[89,'palm D, E♭ and F keys, and the right side E key']].forEach(([m,x])=>{sx[m]={...P('O|'),x}});
  return {
-  flute:{n:'Flute',sf:'flute',off:0,k:'thumb',f:fl,cover:'C4 to B4 and D5 to B5',h:'Second octave: same fingerings, faster air.'},
-  clarinet:{n:'Clarinet',sf:'clarinet',off:2,k:'thumb',f:cl,cover:'the natural notes G3 to G4 and D5 to C6 (sharps and flats are not added yet)',h:'The thumb covers the back hole.'},
-  sax:{n:'Saxophone',sf:'alto_sax',off:9,k:'octave key',f:sx,cover:'B♭3 to C♯6',h:'Same on alto, tenor and bari.'}}})();
+  flute:{n:'Flute',sf:'flute',off:0,k:'thumb',f:fl,cover:'B3 to A6',h:'From E♭ up, keep your right pinky on the E♭ key (not needed for D4 and D5).'},
+  clarinet:{n:'Clarinet',sf:'clarinet',off:2,k:'thumb',f:cl,cover:'E3 to G6',h:'The left thumb covers the back hole and presses the register key.'},
+  sax:{n:'Saxophone',sf:'alto_sax',off:9,k:'octave key',f:sx,cover:'B♭3 to F6',h:'Same on alto, tenor and bari.'}}})();
 let ww=null,wwFk=null;
 function wwSVG(p){const c=(x,on)=>`<circle cx="${x}" cy="10" r="${on?5:4.4}" ${on?'fill="currentColor"':'fill="none" stroke="currentColor" stroke-opacity=".5" stroke-width="1.3"'}/>`;
   return `<svg viewBox="0 0 96 20" width="96" height="20" aria-hidden="true" focusable="false" style="display:block;margin:6px 0 2px;color:#2F6BFF">${p.l.map((v,i)=>c(6+i*12,v)).join('')}<path d="M54 3v14" stroke="currentColor" stroke-opacity=".35" stroke-width="1.2" stroke-linecap="round"/>${p.r.map((v,i)=>c(64+i*12,v)).join('')}</svg>`}

@@ -40,14 +40,6 @@ logo-mark.svg, favicon.svg   spare copies of the logo (the page draws its own, s
 4. In the repo, open Settings, then Pages, and set the source to your main branch and the `/ (root)` folder.
 5. Commit. The site updates within a minute or two.
 
-## If the site redirects somewhere else
-
-The correct address is `https://musicbuddytheory.github.io/`. If a computer keeps sending you to a different address (for example a `.js.org` one), a custom domain was set at some point and the browser remembered the redirect. Check these in order:
-
-1. In the repo, make sure there is **no `CNAME` file** in the root.
-2. Open Settings, then Pages, and make sure the **Custom domain** box is empty.
-3. In your browser, clear the cache and site data for the old address, or test in a private window. A phone that has never visited the old address will load the site normally.
-
 ## Edit the content
 
 - **Guide text and tips:** the `G` and `TIP` objects at the top of `app.js`.
@@ -87,3 +79,11 @@ Open `knowledge.json` on GitHub, add an entry like `{ "q": "What does rubato mea
 ## Keyboard keys for the fingering chart
 
 The keys are set by the `KEYS` list at the top of the fingering section in `app.js` (default `a`, `s`, `d`, `f` for valves 1 to 4).
+
+## If the site redirects somewhere else
+
+If the address sends you to another domain (for example `musicbuddytheory.js.org`), the cause is not in the code:
+
+1. Make sure there is no `CNAME` file in the repo root.
+2. In the repo, open Settings, then Pages, and make sure **Custom domain** is empty. Save if you clear it.
+3. Clear your browser's cache and site data for both addresses, or test in a private window. Browsers remember old redirects.

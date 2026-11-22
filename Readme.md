@@ -2,7 +2,7 @@
 
 A band room survival kit for high school music students. Instrument setup guides, a transposition explorer, flashcards, a pop quiz, and practice tools, all in plain HTML, CSS and JavaScript. No build step, no frameworks, no accounts.
 
-Live site: (https://musicbuddytheory.github.io/)
+Live site: [https://musicbuddytheory.github.io/](https://musicbuddytheory.github.io/)
 
 ## What is in it
 
@@ -17,7 +17,7 @@ Live site: (https://musicbuddytheory.github.io/)
 - **Sight-reading quiz.** Ten staff questions each round: name the note (mind the key signature), name the key from its signature, or pick the fingering for a note on your instrument. Choose treble clef, bass clef, both, or match your instrument.
 - **Pop quiz.** Ten new questions every round (key signatures, transposition, relative minors, intervals, music vocabulary). Your best score is saved in your browser only.
 - **Practice tools.** A metronome and held tuning tones (concert B-flat, A, F and E-flat) that you can play as a piano, trumpet, trombone, tuba, horn, clarinet, flute, alto sax, violin or a plain tone.
-- **Mel,** the music note mascot and chat helper. Out of the box Mel answers common band questions from built-in answers, and you can teach Mel new answers (saved in your browser only). Connect `worker.js` and Mel becomes a real AI that can answer open-ended music theory questions.
+- **Mel,** the metronome mascot and chat helper. Out of the box Mel answers common band questions from built-in answers, and you can teach Mel new answers (saved in your browser only). Connect `worker.js` and Mel becomes a real AI that can answer open-ended music theory questions.
 
 ## Files
 
@@ -39,6 +39,14 @@ logo-mark.svg, favicon.svg   spare copies of the logo (the page draws its own, s
 3. Delete any old copies of those files so nothing conflicts.
 4. In the repo, open Settings, then Pages, and set the source to your main branch and the `/ (root)` folder.
 5. Commit. The site updates within a minute or two.
+
+## If the site redirects somewhere else
+
+The correct address is `https://musicbuddytheory.github.io/`. If a computer keeps sending you to a different address (for example a `.js.org` one), a custom domain was set at some point and the browser remembered the redirect. Check these in order:
+
+1. In the repo, make sure there is **no `CNAME` file** in the root.
+2. Open Settings, then Pages, and make sure the **Custom domain** box is empty.
+3. In your browser, clear the cache and site data for the old address, or test in a private window. A phone that has never visited the old address will load the site normally.
 
 ## Edit the content
 

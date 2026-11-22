@@ -2,7 +2,7 @@
 
 A band room survival kit for high school music students. Instrument setup guides, a transposition explorer, flashcards, a pop quiz, and practice tools, all in plain HTML, CSS and JavaScript. No build step, no frameworks, no accounts.
 
-Live site: https://musicbuddytheory.github.io/
+Live site: (https://musicbuddytheory.github.io/)
 
 ## What is in it
 
